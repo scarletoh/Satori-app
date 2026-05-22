@@ -12,11 +12,11 @@ const MOOD_LABELS: Record<number, string> = {
   5: "Excellent",
 };
 
-const MOOD_BAR_HEIGHT = 3;
-
 function formatTime(ts: number): string {
-  const d = new Date(ts);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(ts).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function formatDate(ts: number): string {
@@ -36,13 +36,8 @@ interface Props {
 
 export default function MoodCard({ entry, onPress }: Props) {
   const colors = useColors();
-
-  const barColor =
-    entry.mood >= 4
-      ? colors.sage
-      : entry.mood === 3
-        ? colors.mutedForeground
-        : colors.amber;
+  const moodColor = colors.moodColors[entry.mood];
+  const glowColor = `${moodColor}18`;
 
   return (
     <Pressable
@@ -52,7 +47,9 @@ export default function MoodCard({ entry, onPress }: Props) {
         {
           backgroundColor: colors.card,
           borderColor: colors.border,
-          opacity: pressed ? 0.7 : 1,
+          borderLeftColor: moodColor,
+          boxShadow: `0px 0px 24px 0px ${glowColor}`,
+          opacity: pressed ? 0.75 : 1,
         },
       ]}
     >
@@ -65,12 +62,18 @@ export default function MoodCard({ entry, onPress }: Props) {
             {formatDate(entry.timestamp)} · {formatTime(entry.timestamp)}
           </Text>
         </View>
-        <View style={styles.moodBadge}>
-          <Text style={[styles.moodLabel, { color: barColor }]}>
+        <View
+          style={[
+            styles.moodBadge,
+            { backgroundColor: `${moodColor}18`, borderColor: `${moodColor}30` },
+          ]}
+        >
+          <Text style={[styles.moodLabel, { color: moodColor }]}>
             {MOOD_LABELS[entry.mood]}
           </Text>
         </View>
       </View>
+
       <View style={styles.bars}>
         {[
           { label: "Mood", value: entry.mood },
@@ -82,21 +85,26 @@ export default function MoodCard({ entry, onPress }: Props) {
               {item.label}
             </Text>
             <View
-              style={[styles.barTrack, { backgroundColor: colors.border }]}
+              style={[styles.barTrack, { backgroundColor: colors.surface2 }]}
             >
               <View
                 style={[
                   styles.barFill,
                   {
                     width: `${(item.value / 5) * 100}%` as `${number}%`,
-                    backgroundColor: barColor,
+                    backgroundColor: moodColor,
+                    boxShadow: `0px 0px 6px 0px ${moodColor}60`,
                   },
                 ]}
               />
             </View>
+            <Text style={[styles.barVal, { color: moodColor }]}>
+              {item.value}
+            </Text>
           </View>
         ))}
       </View>
+
       {!!entry.note && (
         <Text
           style={[styles.note, { color: colors.mutedForeground }]}
@@ -114,57 +122,65 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
+    borderLeftWidth: 3,
     gap: 12,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: 10,
   },
-  headerLeft: {
-    gap: 2,
-    flex: 1,
-  },
+  headerLeft: { gap: 3, flex: 1 },
   emotion: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   },
   time: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
     letterSpacing: 0.2,
   },
-  moodBadge: {},
+  moodBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    borderWidth: 1,
+  },
   moodLabel: {
-    fontSize: 13,
-    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: 0.2,
   },
-  bars: {
-    gap: 8,
-  },
+  bars: { gap: 7 },
   barRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
   },
   barLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    width: 48,
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    width: 44,
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   barTrack: {
     flex: 1,
-    height: MOOD_BAR_HEIGHT,
+    height: 3,
     borderRadius: 2,
     overflow: "hidden",
   },
   barFill: {
-    height: MOOD_BAR_HEIGHT,
+    height: 3,
     borderRadius: 2,
+  },
+  barVal: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    width: 12,
+    textAlign: "right",
   },
   note: {
     fontSize: 13,

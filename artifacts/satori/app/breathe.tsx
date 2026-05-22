@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -38,39 +39,70 @@ export default function BreatheScreen() {
         },
       ]}
     >
+      {/* Atmospheric gradient */}
+      <LinearGradient
+        colors={[
+          `${colors.skyBlue}10`,
+          `${colors.auroranCyan}06`,
+          "transparent",
+        ] as [string, string, string]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 0.5 }}
+        style={[StyleSheet.absoluteFill, { pointerEvents: "none" }]}
+      />
+
       <View style={styles.topBar}>
         <Pressable
           onPress={() => router.back()}
-          style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [
+            styles.closeBtn,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              opacity: pressed ? 0.6 : 1,
+            },
+          ]}
         >
-          <Feather name="x" size={22} color={colors.mutedForeground} />
+          <Feather name="x" size={18} color={colors.mutedForeground} />
         </Pressable>
         <Text style={[styles.title, { color: colors.foreground }]}>
           Breathe
         </Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 38 }} />
       </View>
 
       {!started ? (
         <View style={styles.preStart}>
-          <View
-            style={[
-              styles.circlePreview,
-              { borderColor: colors.border, backgroundColor: colors.card },
-            ]}
-          >
+          {/* Visual preview orb */}
+          <View style={styles.previewOrb}>
             <View
               style={[
-                styles.circleInner,
-                { backgroundColor: colors.sage + "40" },
+                styles.previewOuter,
+                {
+                  borderColor: `${colors.auroranCyan}30`,
+                  backgroundColor: `${colors.skyBlue}06`,
+                },
               ]}
             >
               <View
                 style={[
-                  styles.circleDot,
-                  { backgroundColor: colors.sage },
+                  styles.previewMid,
+                  {
+                    borderColor: `${colors.skyBlue}40`,
+                    backgroundColor: `${colors.skyBlue}0C`,
+                  },
                 ]}
-              />
+              >
+                <View
+                  style={[
+                    styles.previewCore,
+                    {
+                      backgroundColor: colors.skyBlue,
+                      boxShadow: `0px 0px 28px 10px ${colors.skyBlue}50`,
+                    },
+                  ]}
+                />
+              </View>
             </View>
           </View>
 
@@ -78,9 +110,7 @@ export default function BreatheScreen() {
             <Text style={[styles.protocol, { color: colors.foreground }]}>
               4 — 4 — 6 — 2
             </Text>
-            <Text
-              style={[styles.protocolDesc, { color: colors.mutedForeground }]}
-            >
+            <Text style={[styles.protocolDesc, { color: colors.mutedForeground }]}>
               Inhale · Hold · Exhale · Hold
             </Text>
           </View>
@@ -97,9 +127,13 @@ export default function BreatheScreen() {
                   styles.sessionBtn,
                   {
                     backgroundColor:
-                      sessionIdx === i ? colors.sage : colors.surface2,
+                      sessionIdx === i ? `${colors.skyBlue}20` : colors.surface,
                     borderColor:
-                      sessionIdx === i ? colors.sage : colors.border,
+                      sessionIdx === i ? `${colors.skyBlue}60` : colors.border,
+                    boxShadow:
+                      sessionIdx === i
+                        ? `0px 0px 14px 2px ${colors.skyBlue}20`
+                        : undefined,
                   },
                 ]}
               >
@@ -108,9 +142,9 @@ export default function BreatheScreen() {
                     styles.sessionBtnText,
                     {
                       color:
-                        sessionIdx === i
-                          ? colors.primaryForeground
-                          : colors.mutedForeground,
+                        sessionIdx === i ? colors.skyBlue : colors.mutedForeground,
+                      fontFamily:
+                        sessionIdx === i ? "Inter_600SemiBold" : "Inter_400Regular",
                     },
                   ]}
                 >
@@ -124,27 +158,34 @@ export default function BreatheScreen() {
             onPress={() => setStarted(true)}
             style={({ pressed }) => [
               styles.startBtn,
-              { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+              { opacity: pressed ? 0.85 : 1, overflow: "hidden" },
             ]}
           >
-            <Text style={[styles.startBtnText, { color: colors.primaryForeground }]}>
-              Begin
+            <LinearGradient
+              colors={[colors.skyBlue, colors.auroranCyan] as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Text style={[styles.startBtnText, { color: colors.background }]}>
+              Begin Session
             </Text>
+            <Feather name="wind" size={16} color={colors.background} />
           </Pressable>
 
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Find a comfortable position and close your eyes
+            Find stillness. Close your eyes and follow the circle.
           </Text>
         </View>
       ) : (
         <View style={styles.activeSession}>
-          <BreathingCircle size={260} />
+          <BreathingCircle size={280} />
           <Pressable
             onPress={() => setStarted(false)}
             style={({ pressed }) => [
               styles.stopBtn,
               {
-                backgroundColor: colors.surface2,
+                backgroundColor: colors.surface,
                 borderColor: colors.border,
                 opacity: pressed ? 0.7 : 1,
               },
@@ -169,43 +210,54 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  closeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 17,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.3,
   },
   preStart: {
     flex: 1,
     alignItems: "center",
-    gap: 20,
+    gap: 22,
     justifyContent: "center",
   },
-  circlePreview: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+  previewOrb: {
+    marginBottom: 8,
+  },
+  previewOuter: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 12,
   },
-  circleInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  previewMid: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  circleDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  previewCore: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   infoSection: {
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   protocol: {
     fontSize: 28,
@@ -213,17 +265,17 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
   },
   protocolDesc: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 3,
+    letterSpacing: 2.5,
     textTransform: "uppercase",
   },
   sessionLabel: {
     fontSize: 10,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: 1.5,
     textTransform: "uppercase",
-    marginTop: 8,
+    marginTop: 6,
   },
   sessionSelector: {
     flexDirection: "row",
@@ -232,27 +284,29 @@ const styles = StyleSheet.create({
   },
   sessionBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
   },
   sessionBtnText: {
     fontSize: 14,
-    fontFamily: "Inter_500Medium",
     letterSpacing: 0.2,
   },
   startBtn: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 17,
+    borderRadius: 100,
     alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 8,
     marginTop: 4,
   },
   startBtnText: {
     fontSize: 16,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
   },
   hint: {
     fontSize: 13,
@@ -260,16 +314,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 0.2,
     lineHeight: 22,
+    maxWidth: 260,
   },
   activeSession: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 60,
+    gap: 64,
   },
   stopBtn: {
-    paddingHorizontal: 28,
-    paddingVertical: 13,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 100,
     borderWidth: 1,
   },

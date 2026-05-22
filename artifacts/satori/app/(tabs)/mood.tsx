@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Platform,
@@ -18,14 +19,7 @@ import type { MoodLevel } from "@/context/AppContext";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-const MOOD_LEVELS: { value: MoodLevel; label: string }[] = [
-  { value: 1, label: "1" },
-  { value: 2, label: "2" },
-  { value: 3, label: "3" },
-  { value: 4, label: "4" },
-  { value: 5, label: "5" },
-];
-
+const MOOD_LEVELS: MoodLevel[] = [1, 2, 3, 4, 5];
 const MOOD_DESCRIPTORS: Record<MoodLevel, string> = {
   1: "Difficult",
   2: "Low",
@@ -37,7 +31,7 @@ const MOOD_DESCRIPTORS: Record<MoodLevel, string> = {
 export default function MoodScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { moodEntries, addMoodEntry, deleteMoodEntry } = useApp();
+  const { moodEntries, addMoodEntry } = useApp();
 
   const [isLogging, setIsLogging] = useState(false);
   const [mood, setMood] = useState<MoodLevel>(3);
@@ -47,6 +41,7 @@ export default function MoodScreen() {
   const [note, setNote] = useState("");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const moodColor = colors.moodColors[mood];
 
   const handleSave = () => {
     if (!emotion) return;
@@ -67,6 +62,49 @@ export default function MoodScreen() {
     setEnergy(3);
     setClarity(3);
   };
+
+  const renderMoodSelector = (
+    value: MoodLevel,
+    setter: (v: MoodLevel) => void,
+    activeColor: string
+  ) => (
+    <View style={styles.moodSelector}>
+      {MOOD_LEVELS.map((level) => {
+        const isActive = value === level;
+        return (
+          <Pressable
+            key={level}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setter(level);
+            }}
+            style={[
+              styles.moodBtn,
+              {
+                backgroundColor: isActive ? `${activeColor}20` : colors.surface,
+                borderColor: isActive ? `${activeColor}60` : colors.border,
+                boxShadow: isActive
+                  ? `0px 0px 12px 2px ${activeColor}30`
+                  : undefined,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.moodBtnText,
+                {
+                  color: isActive ? activeColor : colors.mutedForeground,
+                  fontFamily: isActive ? "Inter_700Bold" : "Inter_400Regular",
+                },
+              ]}
+            >
+              {level}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -91,11 +129,17 @@ export default function MoodScreen() {
               }}
               style={({ pressed }) => [
                 styles.logBtn,
-                { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+                { opacity: pressed ? 0.8 : 1, overflow: "hidden" },
               ]}
             >
-              <Feather name="plus" size={16} color={colors.primaryForeground} />
-              <Text style={[styles.logBtnText, { color: colors.primaryForeground }]}>
+              <LinearGradient
+                colors={[colors.skyBlue, colors.auroranCyan] as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Feather name="plus" size={15} color={colors.background} />
+              <Text style={[styles.logBtnText, { color: colors.background }]}>
                 Log Mood
               </Text>
             </Pressable>
@@ -108,10 +152,19 @@ export default function MoodScreen() {
               styles.logForm,
               {
                 backgroundColor: colors.card,
-                borderColor: colors.border,
+                borderColor: `${moodColor}30`,
+                boxShadow: `0px 0px 32px 0px ${moodColor}14`,
               },
             ]}
           >
+            {/* Accent line */}
+            <LinearGradient
+              colors={[moodColor, `${moodColor}60`] as [string, string]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.formAccentLine}
+            />
+
             <View style={styles.formHeader}>
               <Text style={[styles.formTitle, { color: colors.foreground }]}>
                 How are you feeling?
@@ -128,43 +181,8 @@ export default function MoodScreen() {
               <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
                 OVERALL MOOD
               </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setMood(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          mood === level.value ? colors.sage : colors.surface2,
-                        borderColor:
-                          mood === level.value ? colors.sage : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            mood === level.value
-                              ? colors.primaryForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text
-                style={[styles.moodDescriptor, { color: colors.mutedForeground }]}
-              >
+              {renderMoodSelector(mood, setMood, moodColor)}
+              <Text style={[styles.moodDescriptor, { color: moodColor }]}>
                 {MOOD_DESCRIPTORS[mood]}
               </Text>
             </View>
@@ -180,86 +198,14 @@ export default function MoodScreen() {
               <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
                 ENERGY LEVEL
               </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setEnergy(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          energy === level.value
-                            ? colors.amber
-                            : colors.surface2,
-                        borderColor:
-                          energy === level.value ? colors.amber : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            energy === level.value
-                              ? colors.accentForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              {renderMoodSelector(energy, setEnergy, colors.amber)}
             </View>
 
             <View style={styles.formSection}>
               <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
                 MENTAL CLARITY
               </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setClarity(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          clarity === level.value
-                            ? colors.primary
-                            : colors.surface2,
-                        borderColor:
-                          clarity === level.value
-                            ? colors.primary
-                            : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            clarity === level.value
-                              ? colors.primaryForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              {renderMoodSelector(clarity, setClarity, colors.auroranCyan)}
             </View>
 
             <View style={styles.formSection}>
@@ -270,13 +216,13 @@ export default function MoodScreen() {
                 value={note}
                 onChangeText={setNote}
                 placeholder="What's on your mind?"
-                placeholderTextColor={colors.mutedForeground}
+                placeholderTextColor={colors.mutedForeground + "80"}
                 multiline
                 style={[
                   styles.noteInput,
                   {
                     color: colors.foreground,
-                    backgroundColor: colors.surface2,
+                    backgroundColor: colors.surface,
                     borderColor: colors.border,
                   },
                 ]}
@@ -287,15 +233,16 @@ export default function MoodScreen() {
               onPress={handleSave}
               style={({ pressed }) => [
                 styles.saveBtn,
-                { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+                { opacity: pressed ? 0.85 : 1, overflow: "hidden" },
               ]}
             >
-              <Text
-                style={[
-                  styles.saveBtnText,
-                  { color: colors.primaryForeground },
-                ]}
-              >
+              <LinearGradient
+                colors={[moodColor, `${moodColor}CC`] as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Text style={[styles.saveBtnText, { color: colors.background }]}>
                 Save Entry
               </Text>
             </Pressable>
@@ -316,18 +263,12 @@ export default function MoodScreen() {
 
         {moodEntries.length > 0 && (
           <View style={styles.entriesSection}>
-            <Text
-              style={[styles.sectionLabel, { color: colors.mutedForeground }]}
-            >
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
               HISTORY
             </Text>
             <View style={styles.entries}>
               {moodEntries.slice(0, 30).map((entry) => (
-                <MoodCard
-                  key={entry.id}
-                  entry={entry}
-                  onPress={() => deleteMoodEntry(entry.id)}
-                />
+                <MoodCard key={entry.id} entry={entry} />
               ))}
             </View>
           </View>
@@ -347,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   screenTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1,
   },
@@ -356,7 +297,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingVertical: 10,
     borderRadius: 100,
   },
   logBtnText: {
@@ -368,7 +309,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     padding: 20,
+    paddingTop: 22,
     gap: 20,
+    overflow: "hidden",
+  },
+  formAccentLine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
   },
   formHeader: {
     flexDirection: "row",
@@ -380,13 +330,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.4,
   },
-  formSection: {
-    gap: 10,
-  },
+  formSection: { gap: 10 },
   formLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1,
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.2,
   },
   moodSelector: {
     flexDirection: "row",
@@ -394,21 +342,20 @@ const styles = StyleSheet.create({
   },
   moodBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 13,
+    borderRadius: 12,
     borderWidth: 1,
     alignItems: "center",
-    justifyContent: "center",
   },
   moodBtnText: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    fontSize: 17,
   },
   moodDescriptor: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    letterSpacing: 0.3,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.5,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   noteInput: {
     borderRadius: 12,
@@ -421,7 +368,7 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   saveBtn: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
   },
@@ -447,15 +394,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: 260,
   },
-  entriesSection: {
-    gap: 12,
-  },
+  entriesSection: { gap: 12 },
   sectionLabel: {
     fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1.2,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.4,
   },
-  entries: {
-    gap: 10,
-  },
+  entries: { gap: 10 },
 });
