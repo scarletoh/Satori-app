@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -24,17 +25,31 @@ const PROMPTS = [
   "What does clarity feel like for me?",
   "What would I tell a friend in my situation?",
   "What is one thing I am releasing today?",
+  "Where did my energy go today?",
+  "What do I need most right now?",
 ];
 
 function getRandomPrompt(): string {
   return PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
 }
 
+function formatGroupDate(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  const today = new Date().toISOString().split("T")[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  if (dateStr === today) return "Today";
+  if (dateStr === yesterday) return "Yesterday";
+  return d.toLocaleDateString([], {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function JournalScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { journalEntries, journalStreak } = useApp();
-
   const [selectedPrompt] = useState(getRandomPrompt);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
@@ -45,21 +60,6 @@ export default function JournalScreen() {
     byDate[d].push(entry);
   }
   const sortedDates = Object.keys(byDate).sort().reverse();
-
-  function formatGroupDate(dateStr: string): string {
-    const d = new Date(dateStr + "T12:00:00");
-    const today = new Date().toISOString().split("T")[0];
-    const yesterday = new Date(Date.now() - 86400000)
-      .toISOString()
-      .split("T")[0];
-    if (dateStr === today) return "Today";
-    if (dateStr === yesterday) return "Yesterday";
-    return d.toLocaleDateString([], {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-  }
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -78,7 +78,7 @@ export default function JournalScreen() {
             </Text>
             {journalStreak > 0 && (
               <View style={styles.streakRow}>
-                <Feather name="zap" size={12} color={colors.amber} />
+                <Feather name="zap" size={11} color={colors.amber} />
                 <Text style={[styles.streakText, { color: colors.amber }]}>
                   {journalStreak} day streak
                 </Text>
@@ -91,14 +91,13 @@ export default function JournalScreen() {
             }
             style={({ pressed }) => [
               styles.writeBtn,
-              { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+              {
+                backgroundColor: colors.primary,
+                opacity: pressed ? 0.8 : 1,
+              },
             ]}
           >
-            <Feather
-              name="edit-2"
-              size={16}
-              color={colors.primaryForeground}
-            />
+            <Feather name="edit-2" size={16} color={colors.primaryForeground} />
           </Pressable>
         </View>
 
@@ -109,36 +108,51 @@ export default function JournalScreen() {
               params: { prompt: selectedPrompt },
             })
           }
-          style={({ pressed }) => [
-            styles.promptCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
         >
-          <Text style={[styles.promptLabel, { color: colors.mutedForeground }]}>
-            TODAY'S PROMPT
-          </Text>
-          <Text style={[styles.promptText, { color: colors.foreground }]}>
-            {selectedPrompt}
-          </Text>
-          <View style={[styles.promptAction, { backgroundColor: colors.surface2 }]}>
-            <Feather name="edit-2" size={14} color={colors.mutedForeground} />
-            <Text style={[styles.promptActionText, { color: colors.mutedForeground }]}>
-              Start writing
+          <LinearGradient
+            colors={["#131720", "#0F1117"]}
+            style={[styles.promptCard, { borderColor: colors.border }]}
+          >
+            <Text style={[styles.promptLabel, { color: colors.primary }]}>
+              TODAY'S PROMPT
             </Text>
-          </View>
+            <Text style={[styles.promptText, { color: "#F2F0ED" }]}>
+              {selectedPrompt}
+            </Text>
+            <View
+              style={[
+                styles.promptCta,
+                { backgroundColor: colors.primarySubtle, borderColor: colors.primary + "30" },
+              ]}
+            >
+              <Feather name="edit-2" size={12} color={colors.primary} />
+              <Text style={[styles.promptCtaText, { color: colors.primary }]}>
+                Begin writing
+              </Text>
+            </View>
+          </LinearGradient>
         </Pressable>
 
         {journalEntries.length === 0 ? (
           <View style={styles.empty}>
-            <Feather name="book-open" size={32} color={colors.mutedForeground} />
+            <View
+              style={[
+                styles.emptyIcon,
+                {
+                  backgroundColor: colors.primarySubtle,
+                  borderColor: colors.primary + "20",
+                },
+              ]}
+            >
+              <Feather name="book-open" size={28} color={colors.primary} />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               Your journal is empty
             </Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+            <Text
+              style={[styles.emptyText, { color: colors.mutedForeground }]}
+            >
               Consistency builds clarity. Write something today.
             </Text>
           </View>
@@ -147,10 +161,7 @@ export default function JournalScreen() {
             {sortedDates.map((date) => (
               <View key={date} style={styles.dateGroup}>
                 <Text
-                  style={[
-                    styles.dateLabel,
-                    { color: colors.mutedForeground },
-                  ]}
+                  style={[styles.dateLabel, { color: colors.mutedForeground }]}
                 >
                   {formatGroupDate(date)}
                 </Text>
@@ -185,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1,
   },
@@ -198,50 +209,63 @@ const styles = StyleSheet.create({
   streakText: {
     fontSize: 12,
     fontFamily: "Inter_500Medium",
+    letterSpacing: 0.2,
   },
   writeBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 2,
   },
   promptCard: {
-    padding: 18,
-    borderRadius: 16,
+    padding: 20,
+    borderRadius: 18,
     borderWidth: 1,
-    gap: 8,
+    gap: 10,
   },
   promptLabel: {
     fontSize: 10,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1.2,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 1.5,
   },
   promptText: {
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: "Inter_400Regular",
-    lineHeight: 26,
-    letterSpacing: -0.1,
+    lineHeight: 28,
+    letterSpacing: -0.2,
     fontStyle: "italic",
   },
-  promptAction: {
+  promptCta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
     alignSelf: "flex-start",
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 100,
+    borderWidth: 1,
     marginTop: 4,
   },
-  promptActionText: {
+  promptCtaText: {
     fontSize: 12,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.2,
   },
   empty: {
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 48,
+    gap: 14,
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 18,
@@ -255,16 +279,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: 260,
   },
-  entries: {
-    gap: 20,
-  },
-  dateGroup: {
-    gap: 10,
-  },
+  entries: { gap: 20 },
+  dateGroup: { gap: 10 },
   dateLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1,
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.2,
     textTransform: "uppercase",
   },
 });

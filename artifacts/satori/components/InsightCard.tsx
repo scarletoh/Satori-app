@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -12,28 +13,26 @@ interface Props {
 
 export default function InsightCard({ label, value, subtitle, color }: Props) {
   const colors = useColors();
+  const accentColor = color ?? colors.primary;
 
   return (
-    <View
+    <LinearGradient
+      colors={["#141418", "#111115"]}
       style={[
         styles.container,
-        { backgroundColor: colors.card, borderColor: colors.border },
+        { borderColor: colors.border },
       ]}
     >
       <Text style={[styles.label, { color: colors.mutedForeground }]}>
         {label}
       </Text>
-      <Text
-        style={[styles.value, { color: color ?? colors.foreground }]}
-      >
-        {value}
-      </Text>
+      <Text style={[styles.value, { color: accentColor }]}>{value}</Text>
       {!!subtitle && (
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
           {subtitle}
         </Text>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -44,24 +43,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     gap: 4,
-    minHeight: 80,
+    minHeight: 88,
+    justifyContent: "center",
   },
   label: {
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    letterSpacing: 0.6,
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 0.8,
     textTransform: "uppercase",
+    marginBottom: 2,
   },
   value: {
-    fontSize: 28,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -1,
-    marginTop: 2,
+    fontSize: 30,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -1.2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 0.1,
     marginTop: 1,
   },
 });

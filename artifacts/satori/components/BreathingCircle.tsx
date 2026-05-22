@@ -10,17 +10,15 @@ interface PhaseConfig {
   instruction: string;
   duration: number;
   scale: number;
-  opacity: number;
   next: Phase;
 }
 
 const PHASES: Record<Phase, PhaseConfig> = {
   inhale: {
     label: "Breathe In",
-    instruction: "through your nose",
+    instruction: "slow and steady",
     duration: 4000,
     scale: 1,
-    opacity: 0.9,
     next: "hold-in",
   },
   "hold-in": {
@@ -28,23 +26,20 @@ const PHASES: Record<Phase, PhaseConfig> = {
     instruction: "gently",
     duration: 4000,
     scale: 1,
-    opacity: 0.9,
     next: "exhale",
   },
   exhale: {
     label: "Breathe Out",
-    instruction: "slowly through your mouth",
+    instruction: "let it all go",
     duration: 6000,
-    scale: 0.55,
-    opacity: 0.4,
+    scale: 0.5,
     next: "hold-out",
   },
   "hold-out": {
     label: "Hold",
-    instruction: "release all tension",
+    instruction: "completely still",
     duration: 2000,
-    scale: 0.55,
-    opacity: 0.4,
+    scale: 0.5,
     next: "inhale",
   },
 };
@@ -53,18 +48,21 @@ interface Props {
   size?: number;
 }
 
-export default function BreathingCircle({ size = 240 }: Props) {
+export default function BreathingCircle({ size = 260 }: Props) {
   const colors = useColors();
   const [phase, setPhase] = React.useState<Phase>("inhale");
   const [countdown, setCountdown] = React.useState(4);
-  const scaleAnim = useRef(new Animated.Value(0.55)).current;
-  const opacityAnim = useRef(new Animated.Value(0.4)).current;
-  const phaseRef = useRef<Phase>("inhale");
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const ring1Anim = useRef(new Animated.Value(0.5)).current;
+  const ring2Anim = useRef(new Animated.Value(0.5)).current;
+  const opacityAnim = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
-    phaseRef.current = phase;
     const config = PHASES[phase];
     setCountdown(Math.round(config.duration / 1000));
+
+    const isExpanding = config.scale === 1;
+    const targetOpacity = isExpanding ? 0.85 : 0.35;
 
     Animated.parallel([
       Animated.timing(scaleAnim, {
@@ -72,8 +70,18 @@ export default function BreathingCircle({ size = 240 }: Props) {
         duration: config.duration,
         useNativeDriver: true,
       }),
+      Animated.timing(ring1Anim, {
+        toValue: config.scale * 1.25,
+        duration: config.duration * 1.1,
+        useNativeDriver: true,
+      }),
+      Animated.timing(ring2Anim, {
+        toValue: config.scale * 1.5,
+        duration: config.duration * 1.2,
+        useNativeDriver: true,
+      }),
       Animated.timing(opacityAnim, {
-        toValue: config.opacity,
+        toValue: targetOpacity,
         duration: config.duration,
         useNativeDriver: true,
       }),
@@ -91,37 +99,70 @@ export default function BreathingCircle({ size = 240 }: Props) {
       clearInterval(countInterval);
       clearTimeout(phaseTimeout);
     };
-  }, [phase, scaleAnim, opacityAnim]);
+  }, [phase, scaleAnim, ring1Anim, ring2Anim, opacityAnim]);
 
   const config = PHASES[phase];
+  const center = size / 2;
+  const coreSize = size * 0.42;
 
   return (
     <View style={styles.container}>
-      <View style={[styles.outerRing, { width: size, height: size, borderColor: colors.border }]}>
+      <View style={[styles.circleWrap, { width: size, height: size }]}>
         <Animated.View
           style={[
-            styles.circle,
+            styles.ring,
             {
-              width: size - 40,
-              height: size - 40,
-              borderRadius: (size - 40) / 2,
-              backgroundColor: colors.sage,
+              width: coreSize,
+              height: coreSize,
+              borderRadius: coreSize / 2,
+              backgroundColor: colors.primary + "08",
+              borderColor: colors.primary + "15",
+              borderWidth: 1,
+              transform: [{ scale: ring2Anim }],
+              opacity: opacityAnim,
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.ring,
+            {
+              width: coreSize,
+              height: coreSize,
+              borderRadius: coreSize / 2,
+              backgroundColor: colors.primary + "10",
+              borderColor: colors.primary + "22",
+              borderWidth: 1,
+              transform: [{ scale: ring1Anim }],
+              opacity: opacityAnim,
+            },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.ring,
+            {
+              width: coreSize,
+              height: coreSize,
+              borderRadius: coreSize / 2,
+              backgroundColor: colors.primary + "25",
               transform: [{ scale: scaleAnim }],
               opacity: opacityAnim,
             },
           ]}
         />
-        <View style={styles.textOverlay}>
-          <Text style={[styles.countdown, { color: colors.foreground }]}>
+        <View style={styles.countdownWrap}>
+          <Text style={[styles.countdown, { color: "#FFFFFF80" }]}>
             {countdown}
           </Text>
         </View>
       </View>
+
       <View style={styles.phaseInfo}>
-        <Text style={[styles.phaseLabel, { color: colors.foreground }]}>
+        <Text style={[styles.phaseLabel, { color: "#FFFFFF90" }]}>
           {config.label}
         </Text>
-        <Text style={[styles.phaseInstruction, { color: colors.mutedForeground }]}>
+        <Text style={[styles.phaseInstruction, { color: "#FFFFFF35" }]}>
           {config.instruction}
         </Text>
       </View>
@@ -132,41 +173,38 @@ export default function BreathingCircle({ size = 240 }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    gap: 32,
+    gap: 40,
   },
-  outerRing: {
-    borderRadius: 999,
-    borderWidth: 1,
+  circleWrap: {
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
-  circle: {
+  ring: {
     position: "absolute",
   },
-  textOverlay: {
+  countdownWrap: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
   },
   countdown: {
-    fontSize: 40,
+    fontSize: 48,
     fontFamily: "Inter_400Regular",
     letterSpacing: -2,
-    opacity: 0.8,
   },
   phaseInfo: {
     alignItems: "center",
-    gap: 4,
+    gap: 6,
   },
   phaseLabel: {
-    fontSize: 22,
+    fontSize: 24,
     fontFamily: "Inter_400Regular",
     letterSpacing: -0.5,
   },
   phaseInstruction: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });

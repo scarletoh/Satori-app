@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useState } from "react";
 import {
   Platform,
@@ -18,21 +19,67 @@ import type { MoodLevel } from "@/context/AppContext";
 import { useApp } from "@/context/AppContext";
 import { useColors } from "@/hooks/useColors";
 
-const MOOD_LEVELS: { value: MoodLevel; label: string }[] = [
-  { value: 1, label: "1" },
-  { value: 2, label: "2" },
-  { value: 3, label: "3" },
-  { value: 4, label: "4" },
-  { value: 5, label: "5" },
-];
-
-const MOOD_DESCRIPTORS: Record<MoodLevel, string> = {
-  1: "Difficult",
-  2: "Low",
-  3: "Okay",
-  4: "Good",
-  5: "Excellent",
+const MOOD_DESCRIPTORS: Record<MoodLevel, { label: string; desc: string }> = {
+  1: { label: "Difficult", desc: "Struggling right now" },
+  2: { label: "Low", desc: "Not quite yourself" },
+  3: { label: "Okay", desc: "Getting through the day" },
+  4: { label: "Good", desc: "Feeling solid today" },
+  5: { label: "Excellent", desc: "At your best" },
 };
+
+function MoodButton({
+  value,
+  selected,
+  onSelect,
+  accentColor,
+}: {
+  value: MoodLevel;
+  selected: boolean;
+  onSelect: (v: MoodLevel) => void;
+  accentColor: string;
+}) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onSelect(value);
+      }}
+      style={({ pressed }) => [
+        moodBtnStyles.btn,
+        {
+          backgroundColor: selected ? accentColor + "20" : colors.surface2,
+          borderColor: selected ? accentColor : colors.border,
+          opacity: pressed ? 0.7 : 1,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          moodBtnStyles.num,
+          { color: selected ? accentColor : colors.mutedForeground },
+        ]}
+      >
+        {value}
+      </Text>
+    </Pressable>
+  );
+}
+
+const moodBtnStyles = StyleSheet.create({
+  btn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  num: {
+    fontSize: 17,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+  },
+});
 
 export default function MoodScreen() {
   const colors = useColors();
@@ -49,7 +96,6 @@ export default function MoodScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
   const handleSave = () => {
-    if (!emotion) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     addMoodEntry({
       timestamp: Date.now(),
@@ -67,6 +113,8 @@ export default function MoodScreen() {
     setEnergy(3);
     setClarity(3);
   };
+
+  const MOOD_LEVELS: MoodLevel[] = [1, 2, 3, 4, 5];
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -91,11 +139,16 @@ export default function MoodScreen() {
               }}
               style={({ pressed }) => [
                 styles.logBtn,
-                { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed ? 0.8 : 1,
+                },
               ]}
             >
-              <Feather name="plus" size={16} color={colors.primaryForeground} />
-              <Text style={[styles.logBtnText, { color: colors.primaryForeground }]}>
+              <Feather name="plus" size={15} color={colors.primaryForeground} />
+              <Text
+                style={[styles.logBtnText, { color: colors.primaryForeground }]}
+              >
                 Log Mood
               </Text>
             </Pressable>
@@ -103,174 +156,109 @@ export default function MoodScreen() {
         </View>
 
         {isLogging && (
-          <View
-            style={[
-              styles.logForm,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-              },
-            ]}
+          <LinearGradient
+            colors={["#131720", "#0F1117"]}
+            style={[styles.logForm, { borderColor: colors.border }]}
           >
             <View style={styles.formHeader}>
               <Text style={[styles.formTitle, { color: colors.foreground }]}>
                 How are you feeling?
               </Text>
-              <Pressable
-                onPress={() => setIsLogging(false)}
-                style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
-              >
+              <Pressable onPress={() => setIsLogging(false)}>
                 <Feather name="x" size={20} color={colors.mutedForeground} />
               </Pressable>
             </View>
 
             <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.formLabel, { color: colors.mutedForeground }]}
+              >
                 OVERALL MOOD
               </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setMood(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          mood === level.value ? colors.sage : colors.surface2,
-                        borderColor:
-                          mood === level.value ? colors.sage : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            mood === level.value
-                              ? colors.primaryForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
+              <View style={styles.moodRow}>
+                {MOOD_LEVELS.map((v) => (
+                  <MoodButton
+                    key={v}
+                    value={v}
+                    selected={mood === v}
+                    onSelect={setMood}
+                    accentColor={
+                      v >= 4
+                        ? colors.primary
+                        : v === 3
+                          ? colors.foreground
+                          : colors.amber
+                    }
+                  />
                 ))}
               </View>
               <Text
-                style={[styles.moodDescriptor, { color: colors.mutedForeground }]}
+                style={[styles.moodDesc, { color: colors.mutedForeground }]}
               >
-                {MOOD_DESCRIPTORS[mood]}
+                {MOOD_DESCRIPTORS[mood].desc}
               </Text>
             </View>
 
             <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.formLabel, { color: colors.mutedForeground }]}
+              >
                 EMOTION
               </Text>
               <MoodWheel selected={emotion} onSelect={setEmotion} />
             </View>
 
-            <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
-                ENERGY LEVEL
-              </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setEnergy(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          energy === level.value
-                            ? colors.amber
-                            : colors.surface2,
-                        borderColor:
-                          energy === level.value ? colors.amber : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            energy === level.value
-                              ? colors.accentForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
-                ))}
+            <View style={styles.twoCol}>
+              <View style={[styles.formSection, { flex: 1 }]}>
+                <Text
+                  style={[styles.formLabel, { color: colors.mutedForeground }]}
+                >
+                  ENERGY
+                </Text>
+                <View style={styles.moodRow}>
+                  {MOOD_LEVELS.map((v) => (
+                    <MoodButton
+                      key={v}
+                      value={v}
+                      selected={energy === v}
+                      onSelect={setEnergy}
+                      accentColor={colors.amber}
+                    />
+                  ))}
+                </View>
               </View>
             </View>
 
             <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.formLabel, { color: colors.mutedForeground }]}
+              >
                 MENTAL CLARITY
               </Text>
-              <View style={styles.moodSelector}>
-                {MOOD_LEVELS.map((level) => (
-                  <Pressable
-                    key={level.value}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      setClarity(level.value);
-                    }}
-                    style={[
-                      styles.moodBtn,
-                      {
-                        backgroundColor:
-                          clarity === level.value
-                            ? colors.primary
-                            : colors.surface2,
-                        borderColor:
-                          clarity === level.value
-                            ? colors.primary
-                            : colors.border,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.moodBtnText,
-                        {
-                          color:
-                            clarity === level.value
-                              ? colors.primaryForeground
-                              : colors.mutedForeground,
-                        },
-                      ]}
-                    >
-                      {level.label}
-                    </Text>
-                  </Pressable>
+              <View style={styles.moodRow}>
+                {MOOD_LEVELS.map((v) => (
+                  <MoodButton
+                    key={v}
+                    value={v}
+                    selected={clarity === v}
+                    onSelect={setClarity}
+                    accentColor={colors.primary}
+                  />
                 ))}
               </View>
             </View>
 
             <View style={styles.formSection}>
-              <Text style={[styles.formLabel, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.formLabel, { color: colors.mutedForeground }]}
+              >
                 NOTE (OPTIONAL)
               </Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
                 placeholder="What's on your mind?"
-                placeholderTextColor={colors.mutedForeground}
+                placeholderTextColor={colors.mutedForeground + "60"}
                 multiline
                 style={[
                   styles.noteInput,
@@ -287,7 +275,10 @@ export default function MoodScreen() {
               onPress={handleSave}
               style={({ pressed }) => [
                 styles.saveBtn,
-                { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed ? 0.8 : 1,
+                },
               ]}
             >
               <Text
@@ -299,23 +290,30 @@ export default function MoodScreen() {
                 Save Entry
               </Text>
             </Pressable>
-          </View>
+          </LinearGradient>
         )}
 
         {moodEntries.length === 0 && !isLogging && (
           <View style={styles.empty}>
-            <Feather name="activity" size={32} color={colors.mutedForeground} />
+            <View
+              style={[
+                styles.emptyIcon,
+                { backgroundColor: colors.primarySubtle, borderColor: colors.primary + "20" },
+              ]}
+            >
+              <Feather name="activity" size={28} color={colors.primary} />
+            </View>
             <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
               No entries yet
             </Text>
             <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-              Start tracking your mood to discover patterns over time
+              Start tracking your mood to discover emotional patterns over time
             </Text>
           </View>
         )}
 
-        {moodEntries.length > 0 && (
-          <View style={styles.entriesSection}>
+        {moodEntries.length > 0 && !isLogging && (
+          <View style={styles.historySection}>
             <Text
               style={[styles.sectionLabel, { color: colors.mutedForeground }]}
             >
@@ -323,11 +321,7 @@ export default function MoodScreen() {
             </Text>
             <View style={styles.entries}>
               {moodEntries.slice(0, 30).map((entry) => (
-                <MoodCard
-                  key={entry.id}
-                  entry={entry}
-                  onPress={() => deleteMoodEntry(entry.id)}
-                />
+                <MoodCard key={entry.id} entry={entry} />
               ))}
             </View>
           </View>
@@ -347,7 +341,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   screenTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1,
   },
@@ -355,8 +349,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 100,
   },
   logBtnText: {
@@ -380,40 +374,24 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.4,
   },
-  formSection: {
-    gap: 10,
-  },
+  formSection: { gap: 10 },
   formLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1,
-  },
-  moodSelector: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  moodBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moodBtnText: {
-    fontSize: 16,
+    fontSize: 10,
     fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.2,
   },
-  moodDescriptor: {
+  moodRow: { flexDirection: "row", gap: 6 },
+  moodDesc: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 0.3,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
+  twoCol: { flexDirection: "row", gap: 12 },
   noteInput: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 12,
+    padding: 14,
     minHeight: 80,
     fontSize: 14,
     fontFamily: "Inter_400Regular",
@@ -421,19 +399,28 @@ const styles = StyleSheet.create({
     textAlignVertical: "top",
   },
   saveBtn: {
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 14,
     alignItems: "center",
   },
   saveBtnText: {
     fontSize: 15,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     letterSpacing: -0.2,
   },
   empty: {
     alignItems: "center",
-    gap: 12,
-    paddingVertical: 48,
+    gap: 14,
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
   },
   emptyTitle: {
     fontSize: 18,
@@ -447,15 +434,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     maxWidth: 260,
   },
-  entriesSection: {
-    gap: 12,
-  },
+  historySection: { gap: 12 },
   sectionLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1.2,
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.4,
   },
-  entries: {
-    gap: 10,
-  },
+  entries: { gap: 10 },
 });

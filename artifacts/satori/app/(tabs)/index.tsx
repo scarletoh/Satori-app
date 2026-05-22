@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React from "react";
 import {
@@ -16,9 +17,11 @@ import { useColors } from "@/hooks/useColors";
 
 function getGreeting(): string {
   const h = new Date().getHours();
+  if (h < 5) return "Still awake";
   if (h < 12) return "Good morning";
   if (h < 17) return "Good afternoon";
-  return "Good evening";
+  if (h < 21) return "Good evening";
+  return "Good night";
 }
 
 function getDayLabel(): string {
@@ -27,6 +30,20 @@ function getDayLabel(): string {
     month: "long",
     day: "numeric",
   });
+}
+
+function getLast7Days(): string[] {
+  const days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    days.push(d.toISOString().split("T")[0]);
+  }
+  return days;
+}
+
+function getDayInitial(dateStr: string): string {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString([], { weekday: "short" }).slice(0, 1);
 }
 
 const MOOD_LABELS: Record<number, string> = {
@@ -41,38 +58,54 @@ export default function TodayScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const {
-    todaysMoodEntry,
-    todaysCheckIn,
+    moodEntries,
     journalEntries,
     routines,
     completedSteps,
+    todaysMoodEntry,
     journalStreak,
     routineStreak,
   } = useApp();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const todayStr = new Date().toISOString().split("T")[0];
+  const last7 = getLast7Days();
+  const hour = new Date().getHours();
+
   const todayJournal = journalEntries.find(
     (e) => new Date(e.timestamp).toISOString().split("T")[0] === todayStr
   );
 
-  const morningRoutines = routines.filter((r) => r.type === "morning");
-  const eveningRoutines = routines.filter((r) => r.type === "evening");
-
-  const hour = new Date().getHours();
-  const activeRoutines =
-    hour < 12 ? morningRoutines : hour < 19 ? [] : eveningRoutines;
-
-  const completedToday = routines.filter((r) =>
+  const completedRoutinesToday = routines.filter((r) =>
     r.completedDates.includes(todayStr)
   ).length;
+
+  const clarityScore = Math.round(
+    (todaysMoodEntry ? 33 : 0) +
+    (todayJournal ? 33 : 0) +
+    (completedRoutinesToday > 0 ? 34 : 0)
+  );
+
+  const moodByDay: Record<string, number> = {};
+  for (const entry of moodEntries) {
+    const d = new Date(entry.timestamp).toISOString().split("T")[0];
+    if (!moodByDay[d]) moodByDay[d] = entry.mood;
+  }
+
+  const activeRoutines = routines.filter((r) => {
+    if (hour < 12) return r.type === "morning";
+    if (hour < 19) return r.type === "anytime";
+    return r.type === "evening";
+  });
+
+  const allRoutines = routines.length > 0 ? routines.slice(0, 2) : [];
 
   return (
     <ScrollView
       style={[styles.scroll, { backgroundColor: colors.background }]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: topPad + 20, paddingBottom: 120 },
+        { paddingTop: topPad + 16, paddingBottom: 120 },
       ]}
       showsVerticalScrollIndicator={false}
     >
@@ -87,80 +120,281 @@ export default function TodayScreen() {
         </View>
         <Pressable
           onPress={() => router.push("/settings")}
-          style={({ pressed }) => [styles.settingsBtn, { opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [
+            styles.settingsBtn,
+            { backgroundColor: colors.surface2, opacity: pressed ? 0.6 : 1 },
+          ]}
         >
-          <Feather name="settings" size={20} color={colors.mutedForeground} />
+          <Feather name="settings" size={16} color={colors.mutedForeground} />
         </Pressable>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.statValue, { color: colors.sage }]}>
-            {journalStreak}
+      <LinearGradient
+        colors={["#131720", "#0F1117"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.clarityCard, { borderColor: colors.border }]}
+      >
+        <View style={styles.clarityTop}>
+          <Text style={[styles.clarityLabel, { color: colors.mutedForeground }]}>
+            TODAY'S CLARITY
           </Text>
-          <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-            Journal streak
-          </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.statValue, { color: colors.amber }]}>
-            {routineStreak}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-            Routine streak
-          </Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.statValue, { color: colors.foreground }]}>
-            {completedToday}/{routines.length}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-            Done today
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-          MOOD
-        </Text>
-        {todaysMoodEntry ? (
-          <Pressable
-            onPress={() => router.push("/(tabs)/mood")}
-            style={({ pressed }) => [
-              styles.moodCard,
+          <View
+            style={[
+              styles.clarityBadge,
               {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                opacity: pressed ? 0.8 : 1,
+                backgroundColor:
+                  clarityScore >= 66
+                    ? colors.glow
+                    : clarityScore >= 33
+                      ? "#C8A96E18"
+                      : colors.surface2,
               },
             ]}
           >
-            <View style={styles.moodCardInner}>
-              <View>
-                <Text style={[styles.moodEmotion, { color: colors.foreground }]}>
-                  {todaysMoodEntry.emotion}
-                </Text>
-                <Text style={[styles.moodLevel, { color: colors.mutedForeground }]}>
-                  {MOOD_LABELS[todaysMoodEntry.mood]}
-                </Text>
-              </View>
+            <Text
+              style={[
+                styles.clarityBadgeText,
+                {
+                  color:
+                    clarityScore >= 66
+                      ? colors.primary
+                      : clarityScore >= 33
+                        ? colors.amber
+                        : colors.mutedForeground,
+                },
+              ]}
+            >
+              {clarityScore >= 66
+                ? "Clear"
+                : clarityScore >= 33
+                  ? "Building"
+                  : "Begin"}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.clarityBody}>
+          <Text style={[styles.clarityScore, { color: colors.foreground }]}>
+            {clarityScore}
+          </Text>
+          <Text style={[styles.clarityMax, { color: colors.mutedForeground }]}>
+            /100
+          </Text>
+        </View>
+        <View style={styles.clarityTrackRow}>
+          <View
+            style={[styles.clarityTrack, { backgroundColor: colors.surface2 }]}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primary + "80"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[
+                styles.clarityFill,
+                { width: `${clarityScore}%` as `${number}%` },
+              ]}
+            />
+          </View>
+        </View>
+        <View style={styles.clarityChecks}>
+          {[
+            { label: "Mood", done: !!todaysMoodEntry },
+            { label: "Journal", done: !!todayJournal },
+            { label: "Routine", done: completedRoutinesToday > 0 },
+          ].map((item) => (
+            <View key={item.label} style={styles.clarityCheck}>
               <View
                 style={[
-                  styles.moodDot,
+                  styles.checkDot,
                   {
-                    backgroundColor:
-                      todaysMoodEntry.mood >= 4
-                        ? colors.sage
-                        : todaysMoodEntry.mood === 3
-                          ? colors.mutedForeground
-                          : colors.amber,
+                    backgroundColor: item.done
+                      ? colors.primary
+                      : colors.surface2,
+                    borderColor: item.done ? colors.primary : colors.border,
                   },
                 ]}
-              />
+              >
+                {item.done && (
+                  <Feather name="check" size={8} color={colors.primaryForeground} />
+                )}
+              </View>
+              <Text
+                style={[
+                  styles.checkLabel,
+                  {
+                    color: item.done
+                      ? colors.foreground
+                      : colors.mutedForeground,
+                  },
+                ]}
+              >
+                {item.label}
+              </Text>
             </View>
-          </Pressable>
-        ) : (
+          ))}
+        </View>
+      </LinearGradient>
+
+      <View style={styles.section}>
+        <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+          7 DAYS
+        </Text>
+        <View style={styles.weatherStrip}>
+          {last7.map((day) => {
+            const mood = moodByDay[day];
+            const isToday = day === todayStr;
+            const dotColor = mood
+              ? mood >= 4
+                ? colors.primary
+                : mood === 3
+                  ? colors.mutedForeground
+                  : colors.amber
+              : "transparent";
+            return (
+              <View key={day} style={styles.weatherDay}>
+                <View
+                  style={[
+                    styles.weatherDot,
+                    {
+                      backgroundColor: dotColor,
+                      borderColor: mood
+                        ? dotColor
+                        : isToday
+                          ? colors.primary
+                          : colors.border,
+                      borderWidth: isToday && !mood ? 1.5 : 1,
+                      transform: [{ scale: isToday ? 1.15 : 1 }],
+                    },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.weatherLabel,
+                    {
+                      color: isToday
+                        ? colors.primary
+                        : colors.mutedForeground,
+                      fontFamily: isToday
+                        ? "Inter_600SemiBold"
+                        : "Inter_400Regular",
+                    },
+                  ]}
+                >
+                  {getDayInitial(day)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.quickActions}>
+        <Pressable
+          onPress={() => router.push("/(tabs)/mood")}
+          style={({ pressed }) => [
+            styles.quickBtn,
+            {
+              backgroundColor: todaysMoodEntry
+                ? colors.surface2
+                : colors.primary,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Feather
+            name="activity"
+            size={14}
+            color={
+              todaysMoodEntry ? colors.mutedForeground : colors.primaryForeground
+            }
+          />
+          <Text
+            style={[
+              styles.quickBtnText,
+              {
+                color: todaysMoodEntry
+                  ? colors.mutedForeground
+                  : colors.primaryForeground,
+              },
+            ]}
+          >
+            {todaysMoodEntry ? "Mood logged" : "Log Mood"}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/journal-write")}
+          style={({ pressed }) => [
+            styles.quickBtn,
+            {
+              backgroundColor: todayJournal
+                ? colors.surface2
+                : colors.surface2,
+              borderColor: colors.border,
+              borderWidth: 1,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Feather name="edit-2" size={14} color={colors.mutedForeground} />
+          <Text style={[styles.quickBtnText, { color: colors.mutedForeground }]}>
+            {todayJournal ? "Written" : "Write"}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/breathe")}
+          style={({ pressed }) => [
+            styles.quickBtn,
+            {
+              backgroundColor: colors.surface2,
+              borderColor: colors.border,
+              borderWidth: 1,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Feather name="wind" size={14} color={colors.mutedForeground} />
+          <Text style={[styles.quickBtnText, { color: colors.mutedForeground }]}>
+            Breathe
+          </Text>
+        </Pressable>
+      </View>
+
+      {journalStreak > 0 || routineStreak > 0 ? (
+        <View style={styles.streakRow}>
+          {journalStreak > 0 && (
+            <View
+              style={[
+                styles.streakChip,
+                { backgroundColor: "#C8A96E14", borderColor: "#C8A96E30" },
+              ]}
+            >
+              <Feather name="zap" size={11} color={colors.amber} />
+              <Text style={[styles.streakChipText, { color: colors.amber }]}>
+                {journalStreak}d journal streak
+              </Text>
+            </View>
+          )}
+          {routineStreak > 0 && (
+            <View
+              style={[
+                styles.streakChip,
+                { backgroundColor: colors.glow, borderColor: colors.primary + "30" },
+              ]}
+            >
+              <Feather name="check-circle" size={11} color={colors.primary} />
+              <Text style={[styles.streakChipText, { color: colors.primary }]}>
+                {routineStreak}d routine streak
+              </Text>
+            </View>
+          )}
+        </View>
+      ) : null}
+
+      {!todaysMoodEntry && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            MOOD
+          </Text>
           <Pressable
             onPress={() => router.push("/(tabs)/mood")}
             style={({ pressed }) => [
@@ -176,42 +410,88 @@ export default function TodayScreen() {
               How are you feeling right now?
             </Text>
             <Text style={[styles.promptSub, { color: colors.mutedForeground }]}>
-              Log your first mood of the day
+              Take a moment to check in with yourself
             </Text>
-            <View style={[styles.promptArrow, { backgroundColor: colors.surface2 }]}>
-              <Feather name="arrow-right" size={16} color={colors.mutedForeground} />
+            <View
+              style={[
+                styles.promptCta,
+                { backgroundColor: colors.primarySubtle },
+              ]}
+            >
+              <Text style={[styles.promptCtaText, { color: colors.primary }]}>
+                Log mood
+              </Text>
+              <Feather name="arrow-right" size={12} color={colors.primary} />
             </View>
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-          JOURNAL
-        </Text>
-        {todayJournal ? (
+      {todaysMoodEntry && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            TODAY'S MOOD
+          </Text>
           <Pressable
-            onPress={() => router.push("/(tabs)/journal")}
+            onPress={() => router.push("/(tabs)/mood")}
             style={({ pressed }) => [
-              styles.journalCard,
+              styles.moodSummaryCard,
               {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
-                opacity: pressed ? 0.8 : 1,
+                opacity: pressed ? 0.9 : 1,
               },
             ]}
           >
-            <Text
-              style={[styles.journalPreview, { color: colors.foreground }]}
-              numberOfLines={2}
-            >
-              {todayJournal.content}
-            </Text>
-            <Text style={[styles.journalMeta, { color: colors.mutedForeground }]}>
-              {todayJournal.wordCount} words
-            </Text>
+            <View style={styles.moodSummaryRow}>
+              <View>
+                <Text
+                  style={[styles.moodEmotion, { color: colors.foreground }]}
+                >
+                  {todaysMoodEntry.emotion}
+                </Text>
+                <Text
+                  style={[styles.moodLevel, { color: colors.mutedForeground }]}
+                >
+                  {MOOD_LABELS[todaysMoodEntry.mood]}
+                </Text>
+              </View>
+              <View style={styles.moodMetrics}>
+                {[
+                  { label: "M", value: todaysMoodEntry.mood, color: colors.primary },
+                  { label: "E", value: todaysMoodEntry.energy, color: colors.amber },
+                  { label: "C", value: todaysMoodEntry.clarity, color: colors.primary },
+                ].map((m) => (
+                  <View key={m.label} style={styles.metricDot}>
+                    <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>
+                      {m.label}
+                    </Text>
+                    <View
+                      style={[
+                        styles.metricCircle,
+                        {
+                          backgroundColor: colors.surface2,
+                          borderColor: m.color + "40",
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.metricValue, { color: m.color }]}>
+                        {m.value}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
           </Pressable>
-        ) : (
+        </View>
+      )}
+
+      {!todayJournal && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            JOURNAL
+          </Text>
           <Pressable
             onPress={() => router.push("/journal-write")}
             style={({ pressed }) => [
@@ -227,23 +507,66 @@ export default function TodayScreen() {
               Take a moment to reflect
             </Text>
             <Text style={[styles.promptSub, { color: colors.mutedForeground }]}>
-              Write something today
+              Consistency builds clarity
             </Text>
-            <View style={[styles.promptArrow, { backgroundColor: colors.surface2 }]}>
-              <Feather name="edit-2" size={16} color={colors.mutedForeground} />
+            <View
+              style={[
+                styles.promptCta,
+                { backgroundColor: colors.primarySubtle },
+              ]}
+            >
+              <Text style={[styles.promptCtaText, { color: colors.primary }]}>
+                Open journal
+              </Text>
+              <Feather name="edit-2" size={12} color={colors.primary} />
             </View>
           </Pressable>
-        )}
-      </View>
+        </View>
+      )}
 
-      {activeRoutines.length > 0 && (
+      {todayJournal && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-            {hour < 12 ? "MORNING ROUTINE" : "EVENING ROUTINE"}
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            JOURNAL
           </Text>
-          {activeRoutines.slice(0, 1).map((routine) => {
+          <Pressable
+            onPress={() => router.push("/(tabs)/journal")}
+            style={({ pressed }) => [
+              styles.journalPreviewCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Text
+              style={[styles.journalPreview, { color: colors.foreground }]}
+              numberOfLines={2}
+            >
+              {todayJournal.content}
+            </Text>
+            <Text
+              style={[styles.journalMeta, { color: colors.mutedForeground }]}
+            >
+              {todayJournal.wordCount} words written today
+            </Text>
+          </Pressable>
+        </View>
+      )}
+
+      {allRoutines.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            ROUTINES
+          </Text>
+          {allRoutines.map((routine) => {
             const key = `${routine.id}-${todayStr}`;
             const done = completedSteps[key] ?? [];
+            const isCompleted = routine.completedDates.includes(todayStr);
+            const progress = routine.steps.length > 0
+              ? done.length / routine.steps.length
+              : 0;
             return (
               <Pressable
                 key={routine.id}
@@ -252,197 +575,304 @@ export default function TodayScreen() {
                   styles.routineCard,
                   {
                     backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    borderColor: isCompleted
+                      ? colors.primary + "40"
+                      : colors.border,
                     opacity: pressed ? 0.8 : 1,
                   },
                 ]}
               >
-                <Text
-                  style={[styles.routineName, { color: colors.foreground }]}
+                <View style={styles.routineTop}>
+                  <Text
+                    style={[styles.routineName, { color: colors.foreground }]}
+                  >
+                    {routine.name}
+                  </Text>
+                  {isCompleted ? (
+                    <Feather
+                      name="check-circle"
+                      size={16}
+                      color={colors.primary}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.routineProgress,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
+                      {done.length}/{routine.steps.length}
+                    </Text>
+                  )}
+                </View>
+                <View
+                  style={[
+                    styles.routineTrack,
+                    { backgroundColor: colors.surface2 },
+                  ]}
                 >
-                  {routine.name}
-                </Text>
-                <View style={styles.routineProgress}>
                   <View
                     style={[
-                      styles.routineProgressTrack,
-                      { backgroundColor: colors.border },
+                      styles.routineFill,
+                      {
+                        width: `${progress * 100}%` as `${number}%`,
+                        backgroundColor: isCompleted
+                          ? colors.primary
+                          : colors.primary + "80",
+                      },
                     ]}
-                  >
-                    <View
-                      style={[
-                        styles.routineProgressFill,
-                        {
-                          width: `${(done.length / Math.max(routine.steps.length, 1)) * 100}%` as `${number}%`,
-                          backgroundColor: colors.sage,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.routineProgressText,
-                      { color: colors.mutedForeground },
-                    ]}
-                  >
-                    {done.length}/{routine.steps.length}
-                  </Text>
+                  />
                 </View>
               </Pressable>
             );
           })}
         </View>
       )}
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
-          BREATHE
-        </Text>
-        <Pressable
-          onPress={() => router.push("/breathe")}
-          style={({ pressed }) => [
-            styles.breatheCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.breatheDot,
-              { backgroundColor: colors.sage + "33" },
-            ]}
-          >
-            <View
-              style={[
-                styles.breatheDotInner,
-                { backgroundColor: colors.sage },
-              ]}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.breatheTitle, { color: colors.foreground }]}>
-              Guided Breathing
-            </Text>
-            <Text
-              style={[styles.breatheSub, { color: colors.mutedForeground }]}
-            >
-              4-4-6-2 · Calm your nervous system
-            </Text>
-          </View>
-          <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-        </Pressable>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, gap: 28 },
+  content: { paddingHorizontal: 20, gap: 24 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
   greeting: {
-    fontSize: 28,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.8,
-  },
-  date: {
-    fontSize: 14,
-    fontFamily: "Inter_400Regular",
-    letterSpacing: 0.1,
-    marginTop: 2,
-  },
-  settingsBtn: {
-    padding: 8,
-    marginTop: 2,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 3,
-  },
-  statValue: {
-    fontSize: 22,
+    fontSize: 30,
     fontFamily: "Inter_700Bold",
     letterSpacing: -1,
   },
-  statLabel: {
-    fontSize: 10,
+  date: {
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
+    letterSpacing: 0.1,
+    marginTop: 3,
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 4,
+  },
+  clarityCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
+  },
+  clarityTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  clarityLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 1.4,
+  },
+  clarityBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  clarityBadgeText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
     letterSpacing: 0.3,
-    textAlign: "center",
   },
-  section: {
-    gap: 10,
+  clarityBody: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 4,
   },
-  sectionTitle: {
+  clarityScore: {
+    fontSize: 56,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -3,
+    lineHeight: 58,
+  },
+  clarityMax: {
+    fontSize: 18,
+    fontFamily: "Inter_400Regular",
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  clarityTrackRow: {},
+  clarityTrack: {
+    height: 3,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  clarityFill: {
+    height: 3,
+    borderRadius: 2,
+  },
+  clarityChecks: {
+    flexDirection: "row",
+    gap: 20,
+  },
+  clarityCheck: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  checkDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkLabel: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.2,
+  },
+  section: { gap: 10 },
+  sectionLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.4,
+  },
+  weatherStrip: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+  },
+  weatherDay: {
+    alignItems: "center",
+    gap: 6,
+  },
+  weatherDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  weatherLabel: {
+    fontSize: 10,
+    letterSpacing: 0.3,
+  },
+  quickActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  quickBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  quickBtnText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.1,
+  },
+  streakRow: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  streakChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+  },
+  streakChipText: {
     fontSize: 11,
     fontFamily: "Inter_500Medium",
-    letterSpacing: 1.2,
+    letterSpacing: 0.2,
   },
-  moodCard: {
+  promptCard: {
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  promptText: {
+    fontSize: 16,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: -0.3,
+  },
+  promptSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+  },
+  promptCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    marginTop: 6,
+  },
+  promptCtaText: {
+    fontSize: 12,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.1,
+  },
+  moodSummaryCard: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
   },
-  moodCardInner: {
+  moodSummaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   moodEmotion: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   moodLevel: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
-  moodDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  moodMetrics: {
+    flexDirection: "row",
+    gap: 8,
   },
-  promptCard: {
-    padding: 18,
-    borderRadius: 16,
-    borderWidth: 1,
+  metricDot: {
+    alignItems: "center",
     gap: 4,
   },
-  promptText: {
-    fontSize: 16,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: -0.2,
+  metricLabel: {
+    fontSize: 9,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 0.8,
   },
-  promptSub: {
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
-  promptArrow: {
-    alignSelf: "flex-end",
+  metricCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 4,
   },
-  journalCard: {
+  metricValue: {
+    fontSize: 13,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.5,
+  },
+  journalPreviewCard: {
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
@@ -452,72 +882,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Inter_400Regular",
     lineHeight: 22,
-    letterSpacing: 0.1,
     fontStyle: "italic",
   },
   journalMeta: {
     fontSize: 12,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   routineCard: {
-    padding: 16,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 10,
+  },
+  routineTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   routineName: {
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: -0.3,
-  },
-  routineProgress: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  routineProgressTrack: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  routineProgressFill: {
-    height: 3,
-    borderRadius: 2,
-  },
-  routineProgressText: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-  },
-  breatheCard: {
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  breatheDot: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  breatheDotInner: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  breatheTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.2,
   },
-  breatheSub: {
+  routineProgress: {
     fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 2,
+    fontFamily: "Inter_500Medium",
+  },
+  routineTrack: {
+    height: 2,
+    borderRadius: 1,
+    overflow: "hidden",
+  },
+  routineFill: {
+    height: 2,
+    borderRadius: 1,
   },
 });

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -14,25 +15,25 @@ import BreathingCircle from "@/components/BreathingCircle";
 import { useColors } from "@/hooks/useColors";
 
 const SESSIONS = [
-  { label: "1 min", cycles: 4 },
-  { label: "3 min", cycles: 11 },
-  { label: "5 min", cycles: 19 },
+  { label: "1 min", cycles: 4, desc: "Quick reset" },
+  { label: "3 min", cycles: 11, desc: "Calm down" },
+  { label: "5 min", cycles: 19, desc: "Deep rest" },
 ];
 
 export default function BreatheScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const [sessionIdx, setSessionIdx] = useState(0);
+  const [sessionIdx, setSessionIdx] = useState(1);
   const [started, setStarted] = useState(false);
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   return (
-    <View
+    <LinearGradient
+      colors={["#0A0F18", "#0C0C0E"]}
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
           paddingTop: topPad + 16,
           paddingBottom: botPad + 20,
         },
@@ -41,122 +42,133 @@ export default function BreatheScreen() {
       <View style={styles.topBar}>
         <Pressable
           onPress={() => router.back()}
-          style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}
+          style={({ pressed }) => [
+            styles.closeBtn,
+            {
+              backgroundColor: "#FFFFFF0A",
+              borderColor: "#FFFFFF12",
+              opacity: pressed ? 0.6 : 1,
+            },
+          ]}
         >
-          <Feather name="x" size={22} color={colors.mutedForeground} />
+          <Feather name="x" size={18} color="#FFFFFF60" />
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Breathe
-        </Text>
-        <View style={{ width: 22 }} />
+        <Text style={styles.title}>Breathe</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       {!started ? (
         <View style={styles.preStart}>
-          <View
-            style={[
-              styles.circlePreview,
-              { borderColor: colors.border, backgroundColor: colors.card },
-            ]}
-          >
-            <View
-              style={[
-                styles.circleInner,
-                { backgroundColor: colors.sage + "40" },
-              ]}
-            >
-              <View
-                style={[
-                  styles.circleDot,
-                  { backgroundColor: colors.sage },
-                ]}
-              />
+          <View style={styles.previewSection}>
+            <View style={styles.ringOuter}>
+              <View style={styles.ringMid}>
+                <View
+                  style={[styles.ringInner, { backgroundColor: colors.primary + "30" }]}
+                >
+                  <View
+                    style={[styles.ringCore, { backgroundColor: colors.primary }]}
+                  />
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.protocolBlock}>
+              <Text style={styles.protocolNumbers}>4 · 4 · 6 · 2</Text>
+              <Text style={styles.protocolLabels}>
+                Inhale · Hold · Exhale · Hold
+              </Text>
             </View>
           </View>
 
-          <View style={styles.infoSection}>
-            <Text style={[styles.protocol, { color: colors.foreground }]}>
-              4 — 4 — 6 — 2
+          <View style={styles.sessionPicker}>
+            <Text style={[styles.pickerLabel, { color: "#FFFFFF40" }]}>
+              SESSION LENGTH
             </Text>
-            <Text
-              style={[styles.protocolDesc, { color: colors.mutedForeground }]}
-            >
-              Inhale · Hold · Exhale · Hold
-            </Text>
-          </View>
-
-          <Text style={[styles.sessionLabel, { color: colors.mutedForeground }]}>
-            SESSION LENGTH
-          </Text>
-          <View style={styles.sessionSelector}>
-            {SESSIONS.map((s, i) => (
-              <Pressable
-                key={s.label}
-                onPress={() => setSessionIdx(i)}
-                style={[
-                  styles.sessionBtn,
-                  {
-                    backgroundColor:
-                      sessionIdx === i ? colors.sage : colors.surface2,
-                    borderColor:
-                      sessionIdx === i ? colors.sage : colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.sessionBtnText,
+            <View style={styles.sessionOptions}>
+              {SESSIONS.map((s, i) => (
+                <Pressable
+                  key={s.label}
+                  onPress={() => setSessionIdx(i)}
+                  style={({ pressed }) => [
+                    styles.sessionOption,
                     {
-                      color:
+                      backgroundColor:
                         sessionIdx === i
-                          ? colors.primaryForeground
-                          : colors.mutedForeground,
+                          ? colors.primary + "18"
+                          : "#FFFFFF06",
+                      borderColor:
+                        sessionIdx === i ? colors.primary + "50" : "#FFFFFF10",
+                      opacity: pressed ? 0.7 : 1,
                     },
                   ]}
                 >
-                  {s.label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text
+                    style={[
+                      styles.sessionLabel,
+                      {
+                        color:
+                          sessionIdx === i ? colors.primary : "#FFFFFF50",
+                      },
+                    ]}
+                  >
+                    {s.label}
+                  </Text>
+                  <Text
+                    style={[styles.sessionDesc, { color: "#FFFFFF30" }]}
+                  >
+                    {s.desc}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </View>
 
-          <Pressable
-            onPress={() => setStarted(true)}
-            style={({ pressed }) => [
-              styles.startBtn,
-              { backgroundColor: colors.sage, opacity: pressed ? 0.8 : 1 },
-            ]}
-          >
-            <Text style={[styles.startBtnText, { color: colors.primaryForeground }]}>
-              Begin
+          <View style={styles.startSection}>
+            <Pressable
+              onPress={() => setStarted(true)}
+              style={({ pressed }) => [
+                styles.startBtn,
+                {
+                  backgroundColor: colors.primary,
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.startBtnText,
+                  { color: colors.primaryForeground },
+                ]}
+              >
+                Begin Session
+              </Text>
+            </Pressable>
+            <Text style={[styles.hint, { color: "#FFFFFF25" }]}>
+              Find a comfortable position and soften your gaze
             </Text>
-          </Pressable>
-
-          <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Find a comfortable position and close your eyes
-          </Text>
+          </View>
         </View>
       ) : (
         <View style={styles.activeSession}>
-          <BreathingCircle size={260} />
+          <BreathingCircle size={270} />
           <Pressable
             onPress={() => setStarted(false)}
             style={({ pressed }) => [
-              styles.stopBtn,
+              styles.endBtn,
               {
-                backgroundColor: colors.surface2,
-                borderColor: colors.border,
+                backgroundColor: "#FFFFFF08",
+                borderColor: "#FFFFFF15",
                 opacity: pressed ? 0.7 : 1,
               },
             ]}
           >
-            <Text style={[styles.stopBtnText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.endBtnText, { color: "#FFFFFF40" }]}>
               End Session
             </Text>
           </Pressable>
         </View>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
@@ -169,97 +181,133 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 16,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "Inter_500Medium",
-    letterSpacing: -0.3,
+    letterSpacing: 0.5,
+    color: "#FFFFFF60",
+    textTransform: "uppercase",
   },
   preStart: {
     flex: 1,
+    justifyContent: "space-between",
+    paddingVertical: 16,
+  },
+  previewSection: {
     alignItems: "center",
-    gap: 20,
+    gap: 40,
+    flex: 1,
     justifyContent: "center",
   },
-  circlePreview: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
+  ringOuter: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 12,
-  },
-  circleInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    borderColor: "#FFFFFF08",
     alignItems: "center",
     justifyContent: "center",
   },
-  circleDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-  },
-  infoSection: {
+  ringMid: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1,
+    borderColor: "#FFFFFF10",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
   },
-  protocol: {
-    fontSize: 28,
-    fontFamily: "Inter_400Regular",
+  ringInner: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ringCore: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  protocolBlock: {
+    alignItems: "center",
+    gap: 8,
+  },
+  protocolNumbers: {
+    fontSize: 32,
+    fontFamily: "Inter_700Bold",
+    color: "#FFFFFF90",
     letterSpacing: 4,
   },
-  protocolDesc: {
-    fontSize: 13,
+  protocolLabels: {
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
+    color: "#FFFFFF30",
     letterSpacing: 3,
     textTransform: "uppercase",
   },
-  sessionLabel: {
-    fontSize: 10,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 1.5,
-    textTransform: "uppercase",
-    marginTop: 8,
+  sessionPicker: {
+    gap: 14,
   },
-  sessionSelector: {
+  pickerLabel: {
+    fontSize: 10,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: 1.5,
+    textAlign: "center",
+  },
+  sessionOptions: {
     flexDirection: "row",
     gap: 10,
-    width: "100%",
   },
-  sessionBtn: {
+  sessionOption: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: 14,
+    borderRadius: 14,
     borderWidth: 1,
     alignItems: "center",
+    gap: 4,
   },
-  sessionBtnText: {
-    fontSize: 14,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 0.2,
+  sessionLabel: {
+    fontSize: 15,
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+  },
+  sessionDesc: {
+    fontSize: 10,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.3,
+  },
+  startSection: {
+    gap: 14,
+    alignItems: "center",
   },
   startBtn: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 16,
+    paddingVertical: 18,
+    borderRadius: 100,
     alignItems: "center",
-    marginTop: 4,
   },
   startBtnText: {
     fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "Inter_700Bold",
     letterSpacing: -0.3,
   },
   hint: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     letterSpacing: 0.2,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   activeSession: {
     flex: 1,
@@ -267,15 +315,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 60,
   },
-  stopBtn: {
-    paddingHorizontal: 28,
-    paddingVertical: 13,
+  endBtn: {
+    paddingHorizontal: 32,
+    paddingVertical: 14,
     borderRadius: 100,
     borderWidth: 1,
   },
-  stopBtnText: {
+  endBtnText: {
     fontSize: 14,
     fontFamily: "Inter_500Medium",
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
 });
