@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
   Platform,
@@ -31,9 +30,8 @@ function getLastNDays(n: number): string[] {
 }
 
 function getDayLabel(dateStr: string): string {
-  return new Date(dateStr + "T12:00:00")
-    .toLocaleDateString([], { weekday: "short" })
-    .charAt(0);
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString([], { weekday: "short" }).charAt(0);
 }
 
 export default function InsightsScreen() {
@@ -54,52 +52,40 @@ export default function InsightsScreen() {
   }
 
   const avgMoodLast7 = (() => {
-    const vals = last7.flatMap((d) => moodByDay[d] ?? []);
-    if (!vals.length) return null;
-    return vals.reduce((s, v) => s + v, 0) / vals.length;
+    const values = last7.flatMap((d) => moodByDay[d] ?? []);
+    if (values.length === 0) return null;
+    return values.reduce((s, v) => s + v, 0) / values.length;
   })();
 
   const avgMoodLast30 = (() => {
-    const vals = last30.flatMap((d) => moodByDay[d] ?? []);
-    if (!vals.length) return null;
-    return vals.reduce((s, v) => s + v, 0) / vals.length;
+    const values = last30.flatMap((d) => moodByDay[d] ?? []);
+    if (values.length === 0) return null;
+    return values.reduce((s, v) => s + v, 0) / values.length;
   })();
 
   const journalDays30 = new Set(
     journalEntries
-      .filter((e) => last30.includes(new Date(e.timestamp).toISOString().split("T")[0]))
+      .filter((e) => {
+        const d = new Date(e.timestamp).toISOString().split("T")[0];
+        return last30.includes(d);
+      })
       .map((e) => new Date(e.timestamp).toISOString().split("T")[0])
   ).size;
 
-  const routinesThisWeek = routines.reduce(
-    (t, r) => t + r.completedDates.filter((d) => last7.includes(d)).length,
-    0
-  );
+  const routinesCompletedThisWeek = routines.reduce((total, r) => {
+    const count = r.completedDates.filter((d) => last7.includes(d)).length;
+    return total + count;
+  }, 0);
 
   const emotionCounts: Record<string, number> = {};
-  for (const e of moodEntries.slice(0, 60)) {
-    emotionCounts[e.emotion] = (emotionCounts[e.emotion] ?? 0) + 1;
+  for (const entry of moodEntries.slice(0, 30)) {
+    emotionCounts[entry.emotion] = (emotionCounts[entry.emotion] ?? 0) + 1;
   }
   const topEmotions = Object.entries(emotionCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 6);
+    .slice(0, 5);
+
   const maxEmotionCount = topEmotions[0]?.[1] ?? 1;
-
-  // Assign colors to emotions based on valence
-  const positiveEmotions = new Set([
-    "Calm", "Content", "Focused", "Grateful", "Energized", "Clear",
-  ]);
-  const getEmotionColor = (emotion: string) => {
-    if (positiveEmotions.has(emotion)) return colors.sage;
-    if (["Anxious", "Overwhelmed", "Irritable", "Scattered"].includes(emotion))
-      return colors.coral;
-    if (["Sad", "Tired"].includes(emotion)) return colors.indigo;
-    return colors.lavender;
-  };
-
-  // Chart bar colors by avg mood
-  const getMoodBarColor = (avg: number) =>
-    avg >= 4 ? colors.skyBlue : avg >= 3 ? colors.sage : avg >= 2 ? colors.lavender : colors.coral;
 
   return (
     <ScrollView
@@ -116,8 +102,18 @@ export default function InsightsScreen() {
         <InsightCard
           label="Avg Mood (7d)"
           value={avgMoodLast7 ? avgMoodLast7.toFixed(1) : "—"}
-          subtitle={avgMoodLast7 ? MOOD_LABELS[Math.round(avgMoodLast7)] : "No data yet"}
-          color={avgMoodLast7 ? getMoodBarColor(avgMoodLast7) : colors.mutedForeground}
+          subtitle={
+            avgMoodLast7 ? MOOD_LABELS[Math.round(avgMoodLast7)] : "No data yet"
+          }
+          color={
+            avgMoodLast7
+              ? avgMoodLast7 >= 4
+                ? colors.sage
+                : avgMoodLast7 >= 3
+                  ? colors.foreground
+                  : colors.amber
+              : colors.mutedForeground
+          }
         />
         <InsightCard
           label="Journal Streak"
@@ -126,10 +122,10 @@ export default function InsightsScreen() {
           color={colors.amber}
         />
         <InsightCard
-          label="Journal Days"
+          label="Journal Days (30d)"
           value={journalDays30}
-          subtitle="last 30 days"
-          color={colors.lavender}
+          subtitle={`of 30 days`}
+          color={colors.foreground}
         />
         <InsightCard
           label="Routine Streak"
@@ -139,7 +135,6 @@ export default function InsightsScreen() {
         />
       </View>
 
-      {/* Weekly mood chart */}
       <View style={styles.section}>
         <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
           MOOD THIS WEEK
@@ -153,19 +148,19 @@ export default function InsightsScreen() {
           {last7.every((d) => !moodByDay[d]) ? (
             <View style={styles.noData}>
               <Text style={[styles.noDataText, { color: colors.mutedForeground }]}>
-                Log moods to reveal your weekly pattern
+                Log moods to see your weekly pattern
               </Text>
             </View>
           ) : (
             <View style={styles.barChart}>
               {last7.map((day) => {
-                const vals = moodByDay[day];
-                const avg = vals
-                  ? vals.reduce((s, v) => s + v, 0) / vals.length
+                const values = moodByDay[day];
+                const avg = values
+                  ? values.reduce((s, v) => s + v, 0) / values.length
                   : 0;
                 const heightPct = avg / 5;
-                const barColor = getMoodBarColor(avg);
-                const isToday = day === new Date().toISOString().split("T")[0];
+                const barColor =
+                  avg >= 4 ? colors.sage : avg >= 3 ? colors.primary : colors.amber;
 
                 return (
                   <View key={day} style={styles.barCol}>
@@ -176,19 +171,10 @@ export default function InsightsScreen() {
                             styles.bar,
                             {
                               height: `${heightPct * 100}%` as `${number}%`,
-                              borderRadius: 5,
-                              overflow: "hidden",
-                              boxShadow: `0px 0px 8px 2px ${barColor}40`,
+                              backgroundColor: barColor,
                             },
                           ]}
-                        >
-                          <LinearGradient
-                            colors={[barColor, `${barColor}80`] as [string, string]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 0, y: 1 }}
-                            style={StyleSheet.absoluteFill}
-                          />
-                        </View>
+                        />
                       ) : (
                         <View
                           style={[
@@ -201,10 +187,7 @@ export default function InsightsScreen() {
                     <Text
                       style={[
                         styles.barDayLabel,
-                        {
-                          color: isToday ? colors.skyBlue : colors.mutedForeground,
-                          fontFamily: isToday ? "Inter_700Bold" : "Inter_400Regular",
-                        },
+                        { color: colors.mutedForeground },
                       ]}
                     >
                       {getDayLabel(day)}
@@ -217,11 +200,12 @@ export default function InsightsScreen() {
         </View>
       </View>
 
-      {/* Top emotions */}
       {topEmotions.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            TOP EMOTIONS — 30 DAYS
+          <Text
+            style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+          >
+            TOP EMOTIONS (30 DAYS)
           </Text>
           <View
             style={[
@@ -229,77 +213,67 @@ export default function InsightsScreen() {
               { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            {topEmotions.map(([emotion, count]) => {
-              const ec = getEmotionColor(emotion);
-              return (
-                <View key={emotion} style={styles.emotionRow}>
-                  <View style={styles.emotionLabelRow}>
-                    <View style={[styles.emotionDot, { backgroundColor: ec }]} />
-                    <Text style={[styles.emotionName, { color: colors.foreground }]}>
-                      {emotion}
-                    </Text>
-                  </View>
-                  <View style={styles.emotionBarRow}>
+            {topEmotions.map(([emotion, count]) => (
+              <View key={emotion} style={styles.emotionRow}>
+                <Text
+                  style={[styles.emotionName, { color: colors.foreground }]}
+                >
+                  {emotion}
+                </Text>
+                <View style={styles.emotionBarRow}>
+                  <View
+                    style={[styles.emotionTrack, { backgroundColor: colors.border }]}
+                  >
                     <View
                       style={[
-                        styles.emotionTrack,
-                        { backgroundColor: colors.surface2 },
+                        styles.emotionFill,
+                        {
+                          width: `${(count / maxEmotionCount) * 100}%` as `${number}%`,
+                          backgroundColor: colors.sage,
+                        },
                       ]}
-                    >
-                      <View
-                        style={[
-                          styles.emotionFill,
-                          {
-                            width: `${(count / maxEmotionCount) * 100}%` as `${number}%`,
-                            backgroundColor: ec,
-                            boxShadow: `0px 0px 4px 1px ${ec}50`,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text style={[styles.emotionCount, { color: ec }]}>
-                      {count}
-                    </Text>
+                    />
                   </View>
+                  <Text
+                    style={[
+                      styles.emotionCount,
+                      { color: colors.mutedForeground },
+                    ]}
+                  >
+                    {count}
+                  </Text>
                 </View>
-              );
-            })}
+              </View>
+            ))}
           </View>
         </View>
       )}
 
-      {/* Summary narrative */}
       {avgMoodLast30 !== null && (
         <View style={styles.section}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+          <Text
+            style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+          >
             30-DAY SUMMARY
           </Text>
           <View
             style={[
               styles.summaryCard,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.borderAccent,
-                boxShadow: `0px 0px 24px 0px ${colors.skyBlue}10`,
-              },
+              { backgroundColor: colors.card, borderColor: colors.border },
             ]}
           >
-            {/* Top accent line */}
-            <LinearGradient
-              colors={[colors.skyBlue, colors.auroranCyan] as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.summaryAccentLine}
-            />
             <Text style={[styles.summaryText, { color: colors.foreground }]}>
               Over the past 30 days, your average mood has been{" "}
-              <Text style={{ color: getMoodBarColor(avgMoodLast30) }}>
+              <Text style={{ color: colors.sage }}>
                 {avgMoodLast30.toFixed(1)}/5
               </Text>{" "}
-              ({MOOD_LABELS[Math.round(avgMoodLast30)]}). You journaled on{" "}
+              ({MOOD_LABELS[Math.round(avgMoodLast30)]}). You have written in
+              your journal on{" "}
               <Text style={{ color: colors.amber }}>{journalDays30} days</Text>{" "}
               and completed routines{" "}
-              <Text style={{ color: colors.sage }}>{routinesThisWeek}×</Text>{" "}
+              <Text style={{ color: colors.primary }}>
+                {routinesCompletedThisWeek}×
+              </Text>{" "}
               this week.
             </Text>
           </View>
@@ -313,26 +287,28 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, gap: 24 },
   title: {
-    fontSize: 30,
+    fontSize: 28,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -1.2,
+    letterSpacing: -1,
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
   },
-  section: { gap: 12 },
+  section: {
+    gap: 12,
+  },
   sectionLabel: {
     fontSize: 11,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.4,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 1.2,
   },
   chartCard: {
     padding: 20,
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
-    height: 170,
+    height: 160,
   },
   noData: {
     flex: 1,
@@ -343,7 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
-    lineHeight: 22,
   },
   barChart: {
     flex: 1,
@@ -355,7 +330,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     height: "100%",
-    gap: 8,
+    gap: 6,
   },
   barContainer: {
     flex: 1,
@@ -365,7 +340,8 @@ const styles = StyleSheet.create({
   },
   bar: {
     width: "100%",
-    minHeight: 6,
+    borderRadius: 4,
+    minHeight: 4,
   },
   barEmpty: {
     width: "100%",
@@ -374,24 +350,17 @@ const styles = StyleSheet.create({
   },
   barDayLabel: {
     fontSize: 11,
+    fontFamily: "Inter_500Medium",
     letterSpacing: 0.3,
   },
   emotionsCard: {
-    padding: 18,
-    borderRadius: 18,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 14,
+    gap: 12,
   },
-  emotionRow: { gap: 6 },
-  emotionLabelRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  emotionDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  emotionRow: {
+    gap: 6,
   },
   emotionName: {
     fontSize: 13,
@@ -415,28 +384,19 @@ const styles = StyleSheet.create({
   },
   emotionCount: {
     fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    width: 22,
+    fontFamily: "Inter_400Regular",
+    width: 24,
     textAlign: "right",
   },
   summaryCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    overflow: "hidden",
     padding: 18,
-    paddingTop: 20,
-  },
-  summaryAccentLine: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 2,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   summaryText: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Inter_400Regular",
-    lineHeight: 26,
+    lineHeight: 24,
     letterSpacing: 0.1,
   },
 });

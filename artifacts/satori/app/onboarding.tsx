@@ -1,12 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
   Animated,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,48 +19,38 @@ import { useColors } from "@/hooks/useColors";
 const STEPS = [
   {
     id: "welcome",
-    title: "Welcome to\nSATORI",
+    title: "Welcome to SATORI",
     subtitle: "A space for mental clarity",
     body: "Not a wellness app. Not a productivity tool. A quiet space to observe your inner state with honesty and care.",
     icon: "circle" as const,
-    accentKey: "skyBlue" as const,
-    gradientKey: "sky" as const,
   },
   {
     id: "mood",
-    title: "Track your\nmood",
-    subtitle: "Observe without judgment",
-    body: "Log mood, energy, and clarity each day. Over time, patterns emerge that words alone cannot capture.",
+    title: "Track your mood",
+    subtitle: "Observe patterns without judgment",
+    body: "Log how you feel each day — mood, energy, mental clarity. Over time, patterns emerge that words alone can not capture.",
     icon: "activity" as const,
-    accentKey: "auroranCyan" as const,
-    gradientKey: "aurora" as const,
   },
   {
     id: "journal",
-    title: "Write\nfreely",
+    title: "Write freely",
     subtitle: "A private, distraction-free space",
-    body: "Your journal is stored locally on your device. No servers. No analysis. No cloud. Just your thoughts.",
+    body: "Your journal is encrypted and stored locally on your device. No servers. No analysis. Just your thoughts.",
     icon: "book-open" as const,
-    accentKey: "lavender" as const,
-    gradientKey: "dusk" as const,
   },
   {
     id: "routines",
-    title: "Build small\nrituals",
+    title: "Build small rituals",
     subtitle: "Consistency over intensity",
-    body: "Small daily routines — a few minutes of stillness, a moment of reflection — compound into lasting clarity.",
+    body: "Small daily routines — a few minutes of stillness, a moment of reflection — compound into lasting clarity over time.",
     icon: "check-circle" as const,
-    accentKey: "sage" as const,
-    gradientKey: "sage" as const,
   },
   {
     id: "privacy",
-    title: "Your data\nis yours",
+    title: "Your data is yours",
     subtitle: "Private by design",
-    body: "SATORI has no servers, no accounts, no data collection. What you write here stays here.",
+    body: "SATORI stores everything on your device. We have no servers, no accounts, no data collection. What you write here stays here.",
     icon: "lock" as const,
-    accentKey: "indigo" as const,
-    gradientKey: "night" as const,
   },
 ];
 
@@ -70,43 +60,35 @@ export default function OnboardingScreen() {
   const { completeOnboarding } = useApp();
   const [step, setStep] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const slideAnim = useRef(new Animated.Value(0)).current;
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
-  const accentColor = colors[current.accentKey];
-  const gradient = colors.gradients[current.gradientKey] as [string, string, string];
-
-  const animate = (dir: 1 | -1, onMid: () => void) => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 0, duration: 160, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: dir * -20, duration: 160, useNativeDriver: true }),
-    ]).start(() => {
-      onMid();
-      slideAnim.setValue(dir * 20);
-      Animated.parallel([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 240, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: 0, duration: 240, useNativeDriver: true }),
-      ]).start();
-    });
-  };
 
   const goNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+
     if (isLast) {
       completeOnboarding();
       router.replace("/(tabs)");
     } else {
-      animate(1, () => setStep((s) => s + 1));
+      setTimeout(() => setStep((s) => s + 1), 150);
     }
   };
 
   const goBack = () => {
     if (step === 0) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    animate(-1, () => setStep((s) => s - 1));
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+    ]).start();
+    setTimeout(() => setStep((s) => s - 1), 150);
   };
 
   return (
@@ -120,15 +102,6 @@ export default function OnboardingScreen() {
         },
       ]}
     >
-      {/* Atmospheric gradient overlay */}
-      <LinearGradient
-        colors={gradient}
-        start={{ x: 0.2, y: 0 }}
-        end={{ x: 0.8, y: 0.7 }}
-        style={[styles.gradientBg, { pointerEvents: "none" }]}
-      />
-
-      {/* Progress */}
       <View style={styles.progressRow}>
         {STEPS.map((_, i) => (
           <View
@@ -136,59 +109,45 @@ export default function OnboardingScreen() {
             style={[
               styles.progressDot,
               {
-                backgroundColor: i <= step ? accentColor : colors.border,
-                width: i === step ? 24 : 6,
-                boxShadow:
-                  i === step ? `0px 0px 8px 2px ${accentColor}50` : undefined,
+                backgroundColor:
+                  i <= step ? colors.sage : colors.border,
+                width: i === step ? 20 : 6,
               },
             ]}
           />
         ))}
       </View>
 
-      {/* Step content */}
-      <Animated.View
-        style={[
-          styles.stepContent,
-          { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-        ]}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Icon orb */}
-        <View
-          style={[
-            styles.iconOuter,
-            {
-              backgroundColor: `${accentColor}10`,
-              borderColor: `${accentColor}25`,
-              boxShadow: `0px 0px 32px 8px ${accentColor}18`,
-            },
-          ]}
-        >
+        <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
           <View
             style={[
-              styles.iconInner,
+              styles.iconCircle,
               {
-                backgroundColor: `${accentColor}18`,
-                borderColor: `${accentColor}35`,
+                backgroundColor: colors.surface2,
+                borderColor: colors.border,
               },
             ]}
           >
-            <Feather name={current.icon} size={28} color={accentColor} />
+            <Feather name={current.icon} size={28} color={colors.sage} />
           </View>
-        </View>
 
-        <View style={styles.textBlock}>
-          <Text style={[styles.subtitle, { color: accentColor }]}>
-            {current.subtitle}
-          </Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>
-            {current.title}
-          </Text>
-          <Text style={[styles.body, { color: colors.mutedForeground }]}>
-            {current.body}
-          </Text>
-        </View>
-      </Animated.View>
+          <View style={styles.textBlock}>
+            <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+              {current.subtitle}
+            </Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>
+              {current.title}
+            </Text>
+            <Text style={[styles.body, { color: colors.mutedForeground }]}>
+              {current.body}
+            </Text>
+          </View>
+        </Animated.View>
+      </ScrollView>
 
       <View style={styles.actions}>
         {step > 0 && (
@@ -197,7 +156,7 @@ export default function OnboardingScreen() {
             style={({ pressed }) => [
               styles.backBtn,
               {
-                backgroundColor: colors.surface,
+                backgroundColor: colors.surface2,
                 borderColor: colors.border,
                 opacity: pressed ? 0.7 : 1,
               },
@@ -211,25 +170,21 @@ export default function OnboardingScreen() {
           style={({ pressed }) => [
             styles.nextBtn,
             {
+              backgroundColor: colors.sage,
               flex: step > 0 ? 1 : undefined,
-              opacity: pressed ? 0.85 : 1,
-              overflow: "hidden",
+              opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
-          <LinearGradient
-            colors={[accentColor, `${accentColor}CC`] as [string, string]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Text style={[styles.nextBtnText, { color: colors.background }]}>
+          <Text
+            style={[styles.nextBtnText, { color: colors.primaryForeground }]}
+          >
             {isLast ? "Begin" : "Continue"}
           </Text>
           <Feather
             name={isLast ? "check" : "arrow-right"}
             size={16}
-            color={colors.background}
+            color={colors.primaryForeground}
           />
         </Pressable>
       </View>
@@ -240,7 +195,7 @@ export default function OnboardingScreen() {
             completeOnboarding();
             router.replace("/(tabs)");
           }}
-          style={({ pressed }) => [styles.skipBtn, { opacity: pressed ? 0.5 : 1 }]}
+          style={styles.skipBtn}
         >
           <Text style={[styles.skipText, { color: colors.mutedForeground }]}>
             Skip introduction
@@ -256,59 +211,48 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 28,
   },
-  gradientBg: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "70%",
-    zIndex: 0,
-  },
   progressRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginBottom: 48,
-    zIndex: 1,
+    marginBottom: 40,
   },
   progressDot: {
     height: 6,
     borderRadius: 3,
+    transition: "width 0.3s",
   },
-  stepContent: {
+  scrollContent: {
     flex: 1,
     justifyContent: "center",
-    gap: 36,
-    zIndex: 1,
+    paddingBottom: 40,
   },
-  iconOuter: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+  stepContent: {
+    gap: 32,
+    alignItems: "flex-start",
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  textBlock: {
+    gap: 10,
   },
-  textBlock: { gap: 10 },
   subtitle: {
-    fontSize: 12,
-    fontFamily: "Inter_600SemiBold",
-    letterSpacing: 1.2,
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 38,
+    fontSize: 32,
     fontFamily: "Inter_700Bold",
-    letterSpacing: -1.5,
-    lineHeight: 46,
+    letterSpacing: -1.2,
+    lineHeight: 40,
   },
   body: {
     fontSize: 16,
@@ -321,12 +265,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginTop: 24,
-    zIndex: 1,
   },
   backBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -336,7 +279,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 17,
+    paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 100,
     minWidth: 160,
@@ -349,7 +292,6 @@ const styles = StyleSheet.create({
   skipBtn: {
     alignItems: "center",
     paddingTop: 16,
-    zIndex: 1,
   },
   skipText: {
     fontSize: 13,
