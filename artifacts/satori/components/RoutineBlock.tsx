@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -29,72 +30,84 @@ export default function RoutineBlock({
     routine.type === "morning"
       ? colors.amber
       : routine.type === "evening"
-        ? colors.sage
+        ? colors.primary
         : colors.mutedForeground;
 
-  const typeLabel =
-    routine.type === "morning"
-      ? "Morning"
-      : routine.type === "evening"
-        ? "Evening"
-        : "Anytime";
+  const typeIcon =
+    routine.type === "morning" ? "sun" : routine.type === "evening" ? "moon" : "zap";
 
   return (
-    <View
+    <LinearGradient
+      colors={isComplete ? ["#131A14", "#0F1210"] : ["#141416", "#111115"]}
       style={[
         styles.container,
         {
-          backgroundColor: colors.card,
-          borderColor: isComplete ? colors.sage : colors.border,
+          borderColor: isComplete
+            ? colors.primary + "40"
+            : colors.border,
         },
       ]}
     >
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.titleRow}>
+            <View
+              style={[
+                styles.typeIconWrap,
+                { backgroundColor: typeColor + "18" },
+              ]}
+            >
+              <Feather name={typeIcon as any} size={13} color={typeColor} />
+            </View>
             <Text style={[styles.name, { color: colors.foreground }]}>
               {routine.name}
             </Text>
+          </View>
+          <View style={styles.metaRow}>
             {routine.streak > 0 && (
               <View
                 style={[
                   styles.streakBadge,
-                  { backgroundColor: colors.surface2 },
+                  { backgroundColor: colors.amber + "18", borderColor: colors.amber + "30" },
                 ]}
               >
-                <Feather name="zap" size={10} color={colors.amber} />
+                <Feather name="zap" size={9} color={colors.amber} />
                 <Text style={[styles.streakText, { color: colors.amber }]}>
-                  {routine.streak}
+                  {routine.streak}d
                 </Text>
               </View>
             )}
-          </View>
-          <View style={styles.metaRow}>
-            <Text style={[styles.typeLabel, { color: typeColor }]}>
-              {typeLabel}
-            </Text>
-            <Text style={[styles.progress, { color: colors.mutedForeground }]}>
+            <Text style={[styles.progressText, { color: colors.mutedForeground }]}>
               {doneCount}/{totalSteps} steps
             </Text>
           </View>
         </View>
         {isComplete && (
-          <Feather name="check-circle" size={20} color={colors.sage} />
+          <View
+            style={[
+              styles.completeBadge,
+              { backgroundColor: colors.primary + "18" },
+            ]}
+          >
+            <Feather name="check" size={12} color={colors.primary} />
+          </View>
         )}
       </View>
+
       <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
-        <View
+        <LinearGradient
+          colors={[colors.primary, colors.primary + "70"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
           style={[
             styles.progressFill,
-            {
-              width: `${progress * 100}%` as `${number}%`,
-              backgroundColor: isComplete ? colors.sage : colors.primary,
-            },
+            { width: `${progress * 100}%` as `${number}%` },
           ]}
         />
       </View>
+
       <View style={styles.steps}>
-        {routine.steps.map((step) => {
+        {routine.steps.map((step, idx) => {
           const done = completedStepIds.includes(step.id);
           return (
             <Pressable
@@ -106,7 +119,7 @@ export default function RoutineBlock({
               style={({ pressed }) => [
                 styles.step,
                 {
-                  backgroundColor: done ? colors.surface2 : "transparent",
+                  backgroundColor: done ? colors.primary + "10" : "transparent",
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}
@@ -115,12 +128,14 @@ export default function RoutineBlock({
                 style={[
                   styles.stepCheck,
                   {
-                    borderColor: done ? colors.sage : colors.border,
-                    backgroundColor: done ? colors.sage : "transparent",
+                    borderColor: done ? colors.primary : colors.border,
+                    backgroundColor: done ? colors.primary : "transparent",
                   },
                 ]}
               >
-                {done && <Feather name="check" size={10} color={colors.card} />}
+                {done && (
+                  <Feather name="check" size={9} color={colors.primaryForeground} />
+                )}
               </View>
               <Text
                 style={[
@@ -144,6 +159,7 @@ export default function RoutineBlock({
           );
         })}
       </View>
+
       {isComplete && (
         <Pressable
           onPress={() => {
@@ -153,26 +169,27 @@ export default function RoutineBlock({
           style={({ pressed }) => [
             styles.completeBtn,
             {
-              backgroundColor: colors.sage,
+              backgroundColor: colors.primary,
               opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
+          <Feather name="check-circle" size={14} color={colors.primaryForeground} />
           <Text
             style={[styles.completeBtnText, { color: colors.primaryForeground }]}
           >
-            Mark Complete
+            Mark Complete for Today
           </Text>
         </Pressable>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     gap: 12,
   },
@@ -181,47 +198,54 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
-  headerLeft: {
-    flex: 1,
-    gap: 4,
-  },
+  headerLeft: { flex: 1, gap: 6 },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
+  typeIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: -0.3,
+    flex: 1,
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
   },
   streakBadge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
     borderRadius: 100,
+    borderWidth: 1,
     gap: 3,
   },
   streakText: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: "Inter_700Bold",
   },
-  metaRow: {
-    flexDirection: "row",
-    gap: 10,
-    alignItems: "center",
-  },
-  typeLabel: {
-    fontSize: 11,
-    fontFamily: "Inter_500Medium",
-    letterSpacing: 0.5,
-    textTransform: "uppercase",
-  },
-  progress: {
+  progressText: {
     fontSize: 11,
     fontFamily: "Inter_400Regular",
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
+  },
+  completeBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
   },
   progressTrack: {
     height: 2,
@@ -232,14 +256,12 @@ const styles = StyleSheet.create({
     height: 2,
     borderRadius: 1,
   },
-  steps: {
-    gap: 4,
-  },
+  steps: { gap: 2 },
   step: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 8,
+    paddingVertical: 9,
     paddingHorizontal: 10,
     borderRadius: 10,
   },
@@ -263,13 +285,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   completeBtn: {
-    paddingVertical: 12,
-    borderRadius: 12,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
   completeBtnText: {
     fontSize: 14,
     fontFamily: "Inter_600SemiBold",
-    letterSpacing: 0.2,
+    letterSpacing: -0.1,
   },
 });

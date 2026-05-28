@@ -42,8 +42,9 @@ function getLast7Days(): string[] {
 }
 
 function getDayInitial(dateStr: string): string {
-  const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString([], { weekday: "short" }).slice(0, 1);
+  return new Date(dateStr + "T12:00:00")
+    .toLocaleDateString([], { weekday: "short" })
+    .slice(0, 1);
 }
 
 const MOOD_LABELS: Record<number, string> = {
@@ -70,7 +71,6 @@ export default function TodayScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const todayStr = new Date().toISOString().split("T")[0];
   const last7 = getLast7Days();
-  const hour = new Date().getHours();
 
   const todayJournal = journalEntries.find(
     (e) => new Date(e.timestamp).toISOString().split("T")[0] === todayStr
@@ -92,13 +92,10 @@ export default function TodayScreen() {
     if (!moodByDay[d]) moodByDay[d] = entry.mood;
   }
 
-  const activeRoutines = routines.filter((r) => {
-    if (hour < 12) return r.type === "morning";
-    if (hour < 19) return r.type === "anytime";
-    return r.type === "evening";
-  });
+  const allRoutines = routines.slice(0, 2);
 
-  const allRoutines = routines.length > 0 ? routines.slice(0, 2) : [];
+  const hasEnoughDataForAI =
+    moodEntries.length + journalEntries.length >= 3;
 
   return (
     <ScrollView
@@ -119,13 +116,17 @@ export default function TodayScreen() {
           </Text>
         </View>
         <Pressable
-          onPress={() => router.push("/settings")}
+          onPress={() => router.push("/profile")}
           style={({ pressed }) => [
-            styles.settingsBtn,
-            { backgroundColor: colors.surface2, opacity: pressed ? 0.6 : 1 },
+            styles.profileBtn,
+            {
+              backgroundColor: colors.surface2,
+              borderColor: colors.border,
+              opacity: pressed ? 0.6 : 1,
+            },
           ]}
         >
-          <Feather name="settings" size={16} color={colors.mutedForeground} />
+          <Feather name="user" size={16} color={colors.mutedForeground} />
         </Pressable>
       </View>
 
@@ -145,9 +146,9 @@ export default function TodayScreen() {
               {
                 backgroundColor:
                   clarityScore >= 66
-                    ? colors.glow
+                    ? colors.primary + "18"
                     : clarityScore >= 33
-                      ? "#C8A96E18"
+                      ? colors.amber + "18"
                       : colors.surface2,
               },
             ]}
@@ -165,14 +166,11 @@ export default function TodayScreen() {
                 },
               ]}
             >
-              {clarityScore >= 66
-                ? "Clear"
-                : clarityScore >= 33
-                  ? "Building"
-                  : "Begin"}
+              {clarityScore >= 66 ? "Clear" : clarityScore >= 33 ? "Building" : "Begin"}
             </Text>
           </View>
         </View>
+
         <View style={styles.clarityBody}>
           <Text style={[styles.clarityScore, { color: colors.foreground }]}>
             {clarityScore}
@@ -181,21 +179,21 @@ export default function TodayScreen() {
             /100
           </Text>
         </View>
-        <View style={styles.clarityTrackRow}>
-          <View
-            style={[styles.clarityTrack, { backgroundColor: colors.surface2 }]}
-          >
-            <LinearGradient
-              colors={[colors.primary, colors.primary + "80"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[
-                styles.clarityFill,
-                { width: `${clarityScore}%` as `${number}%` },
-              ]}
-            />
-          </View>
+
+        <View
+          style={[styles.clarityTrack, { backgroundColor: colors.surface2 }]}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primary + "60"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[
+              styles.clarityFill,
+              { width: `${clarityScore}%` as `${number}%` },
+            ]}
+          />
         </View>
+
         <View style={styles.clarityChecks}>
           {[
             { label: "Mood", done: !!todaysMoodEntry },
@@ -215,16 +213,18 @@ export default function TodayScreen() {
                 ]}
               >
                 {item.done && (
-                  <Feather name="check" size={8} color={colors.primaryForeground} />
+                  <Feather
+                    name="check"
+                    size={8}
+                    color={colors.primaryForeground}
+                  />
                 )}
               </View>
               <Text
                 style={[
                   styles.checkLabel,
                   {
-                    color: item.done
-                      ? colors.foreground
-                      : colors.mutedForeground,
+                    color: item.done ? colors.foreground : colors.mutedForeground,
                   },
                 ]}
               >
@@ -271,9 +271,7 @@ export default function TodayScreen() {
                   style={[
                     styles.weatherLabel,
                     {
-                      color: isToday
-                        ? colors.primary
-                        : colors.mutedForeground,
+                      color: isToday ? colors.primary : colors.mutedForeground,
                       fontFamily: isToday
                         ? "Inter_600SemiBold"
                         : "Inter_400Regular",
@@ -294,9 +292,7 @@ export default function TodayScreen() {
           style={({ pressed }) => [
             styles.quickBtn,
             {
-              backgroundColor: todaysMoodEntry
-                ? colors.surface2
-                : colors.primary,
+              backgroundColor: todaysMoodEntry ? colors.surface2 : colors.primary,
               opacity: pressed ? 0.8 : 1,
             },
           ]}
@@ -304,9 +300,7 @@ export default function TodayScreen() {
           <Feather
             name="activity"
             size={14}
-            color={
-              todaysMoodEntry ? colors.mutedForeground : colors.primaryForeground
-            }
+            color={todaysMoodEntry ? colors.mutedForeground : colors.primaryForeground}
           />
           <Text
             style={[
@@ -326,9 +320,7 @@ export default function TodayScreen() {
           style={({ pressed }) => [
             styles.quickBtn,
             {
-              backgroundColor: todayJournal
-                ? colors.surface2
-                : colors.surface2,
+              backgroundColor: colors.surface2,
               borderColor: colors.border,
               borderWidth: 1,
               opacity: pressed ? 0.8 : 1,
@@ -359,13 +351,16 @@ export default function TodayScreen() {
         </Pressable>
       </View>
 
-      {journalStreak > 0 || routineStreak > 0 ? (
+      {(journalStreak > 0 || routineStreak > 0) && (
         <View style={styles.streakRow}>
           {journalStreak > 0 && (
             <View
               style={[
                 styles.streakChip,
-                { backgroundColor: "#C8A96E14", borderColor: "#C8A96E30" },
+                {
+                  backgroundColor: colors.amber + "14",
+                  borderColor: colors.amber + "30",
+                },
               ]}
             >
               <Feather name="zap" size={11} color={colors.amber} />
@@ -378,17 +373,58 @@ export default function TodayScreen() {
             <View
               style={[
                 styles.streakChip,
-                { backgroundColor: colors.glow, borderColor: colors.primary + "30" },
+                {
+                  backgroundColor: colors.primary + "14",
+                  borderColor: colors.primary + "30",
+                },
               ]}
             >
               <Feather name="check-circle" size={11} color={colors.primary} />
-              <Text style={[styles.streakChipText, { color: colors.primary }]}>
+              <Text
+                style={[styles.streakChipText, { color: colors.primary }]}
+              >
                 {routineStreak}d routine streak
               </Text>
             </View>
           )}
         </View>
-      ) : null}
+      )}
+
+      {hasEnoughDataForAI && (
+        <Pressable
+          onPress={() => router.push("/ai-insights")}
+          style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+        >
+          <LinearGradient
+            colors={["#0F1520", "#111115"]}
+            style={[styles.aiCard, { borderColor: colors.primary + "25" }]}
+          >
+            <View style={styles.aiLeft}>
+              <View
+                style={[
+                  styles.aiDot,
+                  { backgroundColor: colors.primarySubtle },
+                ]}
+              >
+                <Feather name="cpu" size={16} color={colors.primary} />
+              </View>
+              <View style={styles.aiText}>
+                <Text
+                  style={[styles.aiCardTitle, { color: colors.foreground }]}
+                >
+                  Intelligence
+                </Text>
+                <Text
+                  style={[styles.aiCardSub, { color: colors.mutedForeground }]}
+                >
+                  Patterns & insights from your data
+                </Text>
+              </View>
+            </View>
+            <Feather name="arrow-right" size={14} color={colors.primary} />
+          </LinearGradient>
+        </Pressable>
+      )}
 
       {!todaysMoodEntry && (
         <View style={styles.section}>
@@ -410,7 +446,7 @@ export default function TodayScreen() {
               How are you feeling right now?
             </Text>
             <Text style={[styles.promptSub, { color: colors.mutedForeground }]}>
-              Take a moment to check in with yourself
+              Take a moment to check in
             </Text>
             <View
               style={[
@@ -418,7 +454,9 @@ export default function TodayScreen() {
                 { backgroundColor: colors.primarySubtle },
               ]}
             >
-              <Text style={[styles.promptCtaText, { color: colors.primary }]}>
+              <Text
+                style={[styles.promptCtaText, { color: colors.primary }]}
+              >
                 Log mood
               </Text>
               <Feather name="arrow-right" size={12} color={colors.primary} />
@@ -463,7 +501,12 @@ export default function TodayScreen() {
                   { label: "C", value: todaysMoodEntry.clarity, color: colors.primary },
                 ].map((m) => (
                   <View key={m.label} style={styles.metricDot}>
-                    <Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>
+                    <Text
+                      style={[
+                        styles.metricLabel,
+                        { color: colors.mutedForeground },
+                      ]}
+                    >
                       {m.label}
                     </Text>
                     <View
@@ -475,7 +518,9 @@ export default function TodayScreen() {
                         },
                       ]}
                     >
-                      <Text style={[styles.metricValue, { color: m.color }]}>
+                      <Text
+                        style={[styles.metricValue, { color: m.color }]}
+                      >
                         {m.value}
                       </Text>
                     </View>
@@ -515,7 +560,9 @@ export default function TodayScreen() {
                 { backgroundColor: colors.primarySubtle },
               ]}
             >
-              <Text style={[styles.promptCtaText, { color: colors.primary }]}>
+              <Text
+                style={[styles.promptCtaText, { color: colors.primary }]}
+              >
                 Open journal
               </Text>
               <Feather name="edit-2" size={12} color={colors.primary} />
@@ -549,7 +596,7 @@ export default function TodayScreen() {
             <Text
               style={[styles.journalMeta, { color: colors.mutedForeground }]}
             >
-              {todayJournal.wordCount} words written today
+              {todayJournal.wordCount} words · written today
             </Text>
           </Pressable>
         </View>
@@ -564,9 +611,10 @@ export default function TodayScreen() {
             const key = `${routine.id}-${todayStr}`;
             const done = completedSteps[key] ?? [];
             const isCompleted = routine.completedDates.includes(todayStr);
-            const progress = routine.steps.length > 0
-              ? done.length / routine.steps.length
-              : 0;
+            const progress =
+              routine.steps.length > 0
+                ? done.length / routine.steps.length
+                : 0;
             return (
               <Pressable
                 key={routine.id}
@@ -651,10 +699,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
     marginTop: 3,
   },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  profileBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 4,
@@ -702,7 +751,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: -0.5,
   },
-  clarityTrackRow: {},
   clarityTrack: {
     height: 3,
     borderRadius: 2,
@@ -745,10 +793,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 4,
   },
-  weatherDay: {
-    alignItems: "center",
-    gap: 6,
-  },
+  weatherDay: { alignItems: "center", gap: 6 },
   weatherDot: {
     width: 32,
     height: 32,
@@ -795,6 +840,38 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: "Inter_500Medium",
     letterSpacing: 0.2,
+  },
+  aiCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  aiLeft: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "center",
+    flex: 1,
+  },
+  aiDot: {
+    width: 38,
+    height: 38,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiText: { gap: 2, flex: 1 },
+  aiCardTitle: {
+    fontSize: 14,
+    fontFamily: "Inter_600SemiBold",
+    letterSpacing: -0.2,
+  },
+  aiCardSub: {
+    fontSize: 12,
+    fontFamily: "Inter_400Regular",
+    letterSpacing: 0.1,
   },
   promptCard: {
     padding: 18,
@@ -846,14 +923,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     marginTop: 2,
   },
-  moodMetrics: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  metricDot: {
-    alignItems: "center",
-    gap: 4,
-  },
+  moodMetrics: { flexDirection: "row", gap: 8 },
+  metricDot: { alignItems: "center", gap: 4 },
   metricLabel: {
     fontSize: 9,
     fontFamily: "Inter_600SemiBold",
