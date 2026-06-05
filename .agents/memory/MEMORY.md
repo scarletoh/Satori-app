@@ -1,0 +1,2 @@
+---
+- [Single Stage Architecture](single-stage-architecture.md) — SATORI uses one-screen section switcher, NOT tabs; nav pill is custom, tab bar is hidden
