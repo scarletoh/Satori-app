@@ -470,14 +470,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   privacyBody: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Inter_400Regular",
-    lineHeight: 18,
+    lineHeight: 20,
     letterSpacing: 0.1,
   },
   section: { gap: 10 },
   sectionLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 1.4,
   },

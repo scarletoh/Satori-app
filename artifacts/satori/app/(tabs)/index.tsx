@@ -318,8 +318,9 @@ const navStyles = StyleSheet.create({
     justifyContent: "center",
   },
   label: {
-    fontSize: 9.5,
+    fontSize: 11,
     letterSpacing: 0.1,
+    fontFamily: "Inter_500Medium",
   },
 });
 
@@ -1857,13 +1858,17 @@ const styles = StyleSheet.create({
     width: 18, height: 18, borderRadius: 9, borderWidth: 1,
     alignItems: "center", justifyContent: "center",
   },
-  checkLabel: { fontSize: 12, fontFamily: "Inter_400Regular", letterSpacing: 0.1 },
+  checkLabel: { fontSize: 13, fontFamily: "Inter_400Regular", letterSpacing: 0.1 },
 
   // 7-day strip
   weatherStrip: { flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 2 },
   weatherDay: { alignItems: "center", gap: 5 },
   weatherDot: { width: 30, height: 30, borderRadius: 15 },
-  weatherDayLabel: { fontSize: 10, letterSpacing: 0.2 },
+  weatherDayLabel: {
+    fontSize: 11,
+    fontFamily: "Inter_500Medium",
+    letterSpacing: 0.2,
+  },
 
   // Quick actions
   quickRow: { flexDirection: "row", gap: 8 },
@@ -1896,10 +1901,10 @@ const styles = StyleSheet.create({
   summaryCard: { padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, gap: 4 },
   moodSummaryRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   moodEmotion: { fontSize: 18, fontFamily: "Inter_600SemiBold", letterSpacing: -0.4 },
-  moodLevelText: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 },
+  moodLevelText: { fontSize: 14, fontFamily: "Inter_400Regular", marginTop: 2 },
   moodMetrics: { flexDirection: "row", gap: 8 },
   metricPill: { alignItems: "center", gap: 4 },
-  metricPillLabel: { fontSize: 9, fontFamily: "Inter_600SemiBold", letterSpacing: 0.8 },
+  metricPillLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.6 },
   metricPillCircle: {
     width: 30, height: 30, borderRadius: 15, borderWidth: 1,
     alignItems: "center", justifyContent: "center",
@@ -1925,7 +1930,7 @@ const styles = StyleSheet.create({
   journalMeta: { fontSize: 12, fontFamily: "Inter_400Regular", letterSpacing: 0.2 },
   entries: { gap: 20 },
   dateGroup: { gap: 10 },
-  dateGroupLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.2 },
+  dateGroupLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.1 },
 
   // Deep focus
   deepFocusContainer: { ...StyleSheet.absoluteFillObject, zIndex: 50 },
@@ -1962,7 +1967,7 @@ const styles = StyleSheet.create({
   formTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold", letterSpacing: -0.4 },
   formBlock: { gap: 10 },
   moodRow: { flexDirection: "row", gap: 6 },
-  moodDesc: { fontSize: 12, fontFamily: "Inter_400Regular", textAlign: "center", letterSpacing: 0.2 },
+  moodDesc: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", letterSpacing: 0.2 },
   noteInput: {
     borderRadius: 12, borderWidth: 1, padding: 14,
     minHeight: 80, fontSize: 14, fontFamily: "Inter_400Regular",
@@ -1986,13 +1991,13 @@ const styles = StyleSheet.create({
   addStepBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4 },
   addStepText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   addForm: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, padding: 20, gap: 20 },
-  deleteText: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.2 },
+  deleteText: { fontSize: 12, fontFamily: "Inter_400Regular", letterSpacing: 0.2 },
 
   // Template cards
   templateCard: { flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
   templateIcon: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   templateName: { fontSize: 14, fontFamily: "Inter_600SemiBold", letterSpacing: -0.2 },
-  templateMeta: { fontSize: 11, fontFamily: "Inter_400Regular", letterSpacing: 0.2 },
+  templateMeta: { fontSize: 12, fontFamily: "Inter_400Regular", letterSpacing: 0.2 },
   templateCta: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100 },
   templateCtaText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
@@ -2010,21 +2015,21 @@ const styles = StyleSheet.create({
     width: "47.5%", padding: 16, borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth, gap: 2, minHeight: 88, justifyContent: "center",
   },
-  statLabel: { fontSize: 9, fontFamily: "Inter_500Medium", letterSpacing: 1, marginBottom: 4 },
+  statLabel: { fontSize: 11, fontFamily: "Inter_500Medium", letterSpacing: 0.6, marginBottom: 4 },
   statValue: { fontSize: 28, fontFamily: "Inter_700Bold", letterSpacing: -1 },
-  statSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  statSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   chartCard: { padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, height: 180 },
   chartEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
   chartEmptyText: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center" },
   chartInner: { flex: 1, flexDirection: "row", gap: 8 },
   yAxis: { justifyContent: "space-between", paddingVertical: 2, paddingBottom: 20 },
-  yLabel: { fontSize: 9, fontFamily: "Inter_400Regular", letterSpacing: 0.2, textAlign: "right", width: 12 },
+  yLabel: { fontSize: 10, fontFamily: "Inter_400Regular", letterSpacing: 0.2, textAlign: "right", width: 12 },
   bars: { flex: 1, flexDirection: "row", gap: 4, alignItems: "flex-end" },
   barCol: { flex: 1, height: "100%", alignItems: "center", gap: 6 },
   barTrack: { flex: 1, width: "100%", justifyContent: "flex-end", alignItems: "center" },
   bar: { width: "100%", minHeight: 3, borderRadius: 4 },
   barEmpty: { width: "100%", height: 2, borderRadius: 1 },
-  xLabel: { fontSize: 10, letterSpacing: 0.2 },
+  xLabel: { fontSize: 11, fontFamily: "Inter_500Medium", letterSpacing: 0.2 },
   emotionsCard: { padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, gap: 14 },
   emotionRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   emotionRank: { fontSize: 11, fontFamily: "Inter_500Medium", width: 14, textAlign: "center" },
@@ -2044,12 +2049,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold", letterSpacing: -0.4 },
   emptyBody: {
-    fontSize: 14, fontFamily: "Inter_400Regular",
-    textAlign: "center", lineHeight: 22, maxWidth: 260,
+    fontSize: 15, fontFamily: "Inter_400Regular",
+    textAlign: "center", lineHeight: 24, maxWidth: 280,
   },
 
   // Misc
-  eyebrow: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1.4 },
+  eyebrow: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 1.1 },
   eyebrowValue: { fontSize: 12, fontFamily: "Inter_500Medium", letterSpacing: 0.2 },
   writeCircleBtn: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", marginTop: 2 },
   sectionScroll2: { flex: 1 },

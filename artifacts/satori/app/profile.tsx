@@ -617,14 +617,14 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
   heroStatLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
     letterSpacing: 0.4,
     textAlign: "center",
   },
   section: { gap: 12 },
   sectionLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Inter_600SemiBold",
     letterSpacing: 1.4,
   },
@@ -692,9 +692,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   achievementDesc: {
-    fontSize: 10,
+    fontSize: 11,
     fontFamily: "Inter_400Regular",
-    lineHeight: 14,
+    lineHeight: 16,
     letterSpacing: 0.1,
   },
   aiCard: {

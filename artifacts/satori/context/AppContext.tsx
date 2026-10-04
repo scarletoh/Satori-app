@@ -54,6 +54,7 @@ interface AppState {
 }
 
 interface AppContextValue extends AppState {
+  isReady: boolean;
   completeOnboarding: () => void;
   addMoodEntry: (entry: Omit<MoodEntry, "id">) => void;
   deleteMoodEntry: (id: string) => void;
@@ -122,26 +123,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((raw) => {
-      if (raw) {
+    let mounted = true;
+
+    const hydrate = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!raw || !mounted) return;
+
         try {
           const parsed = JSON.parse(raw) as Partial<AppState>;
           setState((prev) => ({
             ...prev,
             ...parsed,
-            routines:
-              parsed.routines && parsed.routines.length > 0
-                ? parsed.routines
-                : defaultRoutines,
+            routines: parsed.routines ?? defaultRoutines,
           }));
-        } catch {}
+        } catch (error) {
+          console.warn("SATORI could not read saved data.", error);
+        }
+      } catch (error) {
+        console.warn("SATORI could not load saved data.", error);
+      } finally {
+        if (mounted) setLoaded(true);
       }
-      setLoaded(true);
-    });
+    };
+
+    void hydrate();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const persist = useCallback((newState: AppState) => {
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState)).catch(() => {});
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newState)).catch((error) => {
+      console.warn("SATORI could not save your latest changes.", error);
+    });
   }, []);
 
   const update = useCallback(
@@ -324,12 +339,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     0
   );
 
-  if (!loaded) return null;
-
   return (
     <AppContext.Provider
       value={{
         ...state,
+        isReady: loaded,
         completeOnboarding,
         addMoodEntry,
         deleteMoodEntry,
